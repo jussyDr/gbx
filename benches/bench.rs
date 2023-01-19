@@ -4,7 +4,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use gbx::{Block, Map};
 use sha2::{Digest, Sha256};
 use std::fs::{File, OpenOptions};
-use std::io::{BufReader, Seek, Write};
+use std::io::{Read, Seek, Write};
 use std::path::Path;
 
 fn fetch_file(url: &str, hash_base64: &str) -> Result<File> {
@@ -46,25 +46,25 @@ fn fetch_file(url: &str, hash_base64: &str) -> Result<File> {
 fn bench(c: &mut Criterion) {
     let block_id = 44867;
     let url = format!("https://item.exchange/item/download/{block_id}");
-    let file = fetch_file(&url, "U6JKwKAv62gS_KLHuJpaSc0Ri5mHvbitGodiceC-5qI").unwrap();
-    let mut reader = BufReader::new(file);
+    let mut file = fetch_file(&url, "U6JKwKAv62gS_KLHuJpaSc0Ri5mHvbitGodiceC-5qI").unwrap();
+    let mut buf = vec![];
+    file.read_to_end(&mut buf).unwrap();
 
     c.bench_function(&format!("read block {block_id}"), |b| {
         b.iter_with_large_drop(|| {
-            reader.rewind().unwrap();
-            black_box(Block::read_from(&mut reader).unwrap());
+            black_box(Block::read_from(buf.as_slice()).unwrap());
         })
     });
 
     let map_id = 31080;
     let url = format!("https://trackmania.exchange/maps/download/{map_id}");
-    let file = fetch_file(&url, "QkvIruZgolwog5meQDgd3xqFEuZmLXWXG_n68YjPh5M").unwrap();
-    let mut reader = BufReader::new(file);
+    let mut file = fetch_file(&url, "QkvIruZgolwog5meQDgd3xqFEuZmLXWXG_n68YjPh5M").unwrap();
+    let mut buf = vec![];
+    file.read_to_end(&mut buf).unwrap();
 
     c.bench_function(&format!("read map {map_id}"), |b| {
         b.iter_with_large_drop(|| {
-            reader.rewind().unwrap();
-            black_box(Map::read_from(&mut reader).unwrap());
+            black_box(Map::read_from(buf.as_slice()).unwrap());
         })
     });
 }
