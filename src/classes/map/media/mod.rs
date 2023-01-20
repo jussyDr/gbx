@@ -2,8 +2,9 @@
 pub mod block;
 
 use crate::error::ReadResult;
-use crate::reader::{IdState, NodeState, Reader};
+use crate::reader::{self, Reader};
 use crate::Vec3;
+use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
 /// A media block.
@@ -56,9 +57,11 @@ pub struct Clip {
 }
 
 impl Clip {
-    pub fn read<R>(r: &mut Reader<R, IdState, NodeState>) -> ReadResult<Self>
+    pub fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
+        I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
     {
         r.chunk_id(0x0307900D)?;
         r.u32()?; // 0
@@ -179,9 +182,11 @@ pub struct ClipGroup {
 }
 
 impl ClipGroup {
-    pub fn read<R>(r: &mut Reader<R, IdState, NodeState>) -> ReadResult<Self>
+    pub fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
+        I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
     {
         r.chunk_id(0x0307A003)?;
         r.u32()?; // 10

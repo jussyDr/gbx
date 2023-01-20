@@ -19,7 +19,6 @@ mod header;
 mod reader;
 mod ref_table;
 mod types;
-mod writer;
 
 pub use block::Block;
 pub use classes::{block, ghost, map};

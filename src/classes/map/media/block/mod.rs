@@ -3,8 +3,9 @@ pub mod key;
 
 use crate::error::ReadResult;
 use crate::ghost::EntityRecordData;
-use crate::reader::{IdState, NodeState, Reader};
+use crate::reader::{self, Reader};
 use crate::{FileRef, Vec3};
+use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
 /// Generic media block keys.
@@ -402,9 +403,10 @@ pub struct Image {
 }
 
 impl Image {
-    pub(crate) fn read<R, I>(r: &mut Reader<R, I, NodeState>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
+        N: BorrowMut<reader::NodeState>,
     {
         r.chunk_id(0x030A5000)?;
         let effect = r.node_owned(0x07010000, EffectSimi::read)?;
@@ -501,9 +503,10 @@ pub struct Text {
 }
 
 impl Text {
-    pub(crate) fn read<R, I>(r: &mut Reader<R, I, NodeState>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
+        N: BorrowMut<reader::NodeState>,
     {
         r.chunk_id(0x030A8001)?;
         let text = r.string()?;
@@ -841,9 +844,11 @@ impl Fog {
 pub struct Entity;
 
 impl Entity {
-    pub(crate) fn read<R>(r: &mut Reader<R, IdState, NodeState>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
+        I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
     {
         r.chunk_id(0x0329F000)?;
         let version = r.u32()?;

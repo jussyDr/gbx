@@ -1,8 +1,7 @@
-use crate::error::{ReadError, ReadResult, WriteResult};
+use crate::error::{ReadError, ReadResult};
 use crate::reader::Reader;
-use crate::writer::Writer;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use std::io::{Read, Write};
+use std::io::Read;
 
 #[derive(TryFromPrimitive, IntoPrimitive)]
 #[repr(u8)]
@@ -78,28 +77,5 @@ impl Header {
             user_data,
             num_nodes,
         })
-    }
-
-    pub fn write<W>(
-        w: &mut Writer<W>,
-        class_id: u32,
-        user_data: &[u8],
-        num_nodes: u32,
-    ) -> WriteResult
-    where
-        W: Write,
-    {
-        w.bytes(b"GBX")?;
-        w.u16(6)?;
-        w.u8(Format::Binary.into())?;
-        w.u8(Compression::Uncompressed.into())?;
-        w.u8(Compression::Compressed.into())?;
-        w.u8(b'R')?;
-        w.u32(class_id)?;
-        w.u32(user_data.len() as u32)?;
-        w.bytes(user_data)?;
-        w.u32(num_nodes)?;
-
-        Ok(())
     }
 }

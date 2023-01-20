@@ -1,7 +1,6 @@
-use crate::error::{ReadResult, WriteResult};
+use crate::error::ReadResult;
 use crate::reader::Reader;
-use crate::writer::Writer;
-use std::io::{Read, Write};
+use std::io::Read;
 
 pub struct RefTable;
 
@@ -15,15 +14,6 @@ impl RefTable {
         if num_node_refs > 0 {
             todo!()
         }
-
-        Ok(())
-    }
-
-    pub fn write<W>(w: &mut Writer<W>) -> WriteResult
-    where
-        W: Write,
-    {
-        w.u32(0)?;
 
         Ok(())
     }

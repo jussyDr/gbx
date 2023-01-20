@@ -44,26 +44,3 @@ impl std::error::Error for ReadError {}
 
 /// Read result.
 pub type ReadResult<T> = std::result::Result<T, ReadError>;
-
-/// Error while writing.
-#[derive(Debug)]
-pub enum WriteError {
-    Io(io::Error),
-}
-
-impl From<io::Error> for WriteError {
-    fn from(err: io::Error) -> Self {
-        Self::Io(err)
-    }
-}
-
-impl Display for WriteError {
-    fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
-    }
-}
-
-impl std::error::Error for WriteError {}
-
-/// Write result.
-pub type WriteResult = std::result::Result<(), WriteError>;
