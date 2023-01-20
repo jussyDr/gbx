@@ -1,6 +1,6 @@
 use crate::error::ReadResult;
 use crate::gbx::{self, ReadBody, ReadChunk};
-use crate::reader::{IdState, NodeState, Reader};
+use crate::reader::{self, Reader};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
@@ -41,13 +41,15 @@ impl EntityRecordData {
 pub struct Ghost;
 
 impl Ghost {
-    pub(crate) fn read<R>(r: &mut Reader<R, IdState, NodeState>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
+        I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
     {
         let mut ghost = Self::default();
         gbx::read_body(&mut ghost, r)?;
-        Ok(Self)
+        Ok(ghost)
     }
 
     fn read_chunk_0303f006<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
@@ -68,8 +70,8 @@ impl Ghost {
     fn read_chunk_03092000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read + Seek,
-        I: BorrowMut<IdState>,
-        N: BorrowMut<NodeState>,
+        I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
     {
         let version = r.u32()?;
         r.id()?;
@@ -135,7 +137,7 @@ impl Ghost {
     fn read_chunk_03092010<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
-        I: BorrowMut<IdState>,
+        I: BorrowMut<reader::IdState>,
     {
         r.id()?;
 
@@ -145,7 +147,6 @@ impl Ghost {
     fn read_chunk_0309201c<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
-        I: BorrowMut<IdState>,
     {
         r.u32()?;
         r.u32()?;
@@ -160,13 +161,13 @@ impl Ghost {
     }
 }
 
-impl ReadBody for Ghost {
-    fn body_chunks<'a, R, I, N>() -> &'a [(u32, ReadChunk<Self, R, I, N>)]
-    where
-        R: Read + Seek,
-        I: BorrowMut<IdState>,
-        N: BorrowMut<NodeState>,
-    {
+impl<R, I, N> ReadBody<R, I, N> for Ghost
+where
+    R: Read + Seek,
+    I: BorrowMut<reader::IdState>,
+    N: BorrowMut<reader::NodeState>,
+{
+    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
         &[
             (0x0303F006, ReadChunk::Read(Self::read_chunk_0303f006)),
             (0x0303F007, ReadChunk::Skip),

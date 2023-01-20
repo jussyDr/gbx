@@ -43,7 +43,7 @@ impl Header {
         }
 
         let format = Format::try_from(r.u8()?)
-            .map_err(|err| ReadError::Generic(String::from("unknown format")))?;
+            .map_err(|_err| ReadError::Generic(String::from("unknown format")))?;
 
         if matches!(format, Format::Text) {
             return Err(ReadError::Generic(String::from(
@@ -52,7 +52,7 @@ impl Header {
         }
 
         let ref_table_compression = Compression::try_from(r.u8()?)
-            .map_err(|err| ReadError::Generic(String::from("unknown compression")))?;
+            .map_err(|_err| ReadError::Generic(String::from("unknown compression")))?;
 
         if matches!(ref_table_compression, Compression::Compressed) {
             return Err(ReadError::Generic(String::from(
@@ -61,7 +61,7 @@ impl Header {
         }
 
         let body_compression = Compression::try_from(r.u8()?)
-            .map_err(|err| ReadError::Generic(String::from("unknown compression")))?;
+            .map_err(|_err| ReadError::Generic(String::from("unknown compression")))?;
 
         match r.u8()? {
             b'R' => {}

@@ -2,13 +2,15 @@
 pub mod media;
 
 use crate::error::{ReadResult, WriteResult};
+use crate::gbx::{ReadBody, ReadChunk};
 use crate::header::{Compression, Header};
-use crate::reader::{self, NodeState, Reader};
+use crate::reader::{self, Reader};
 use crate::ref_table::RefTable;
 use crate::types::{RcStr, Vec3};
 use crate::writer::{self, Writer};
-use crate::{FileRef, Ghost};
+use crate::{gbx, FileRef, Ghost};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use std::borrow::BorrowMut;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Cursor, Read, Seek, Write};
 use std::ops::Sub;
@@ -76,7 +78,7 @@ pub enum PhaseOffset {
 }
 
 /// Skin of a block/item.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Skin {
     /// The skin.
     pub skin: Option<FileRef>,
@@ -85,26 +87,40 @@ pub struct Skin {
 }
 
 impl Skin {
-    fn read<R, I, S>(r: &mut Reader<R, I, S>) -> ReadResult<Self>
+    fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
+        I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
     {
-        r.chunk_id(0x03059002)?;
-        r.u32()?; // 2
-        r.u16()?;
-        let skin = r.optional_file_ref()?;
-        r.optional_file_ref()?;
-
-        r.chunk_id(0x03059003)?;
-        r.u32()?; // 0
-        let effect = r.optional_file_ref()?;
-
-        r.node_end()?;
-
-        Ok(Self { skin, effect })
+        let mut skin = Self::default();
+        gbx::read_body(&mut skin, r)?;
+        Ok(skin)
     }
 
-    fn write<W, I, S>(&self, w: &mut Writer<W, I, S>) -> WriteResult
+    fn read_chunk_03059002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    where
+        R: Read,
+    {
+        r.u32()?; // 2
+        r.u16()?;
+        self.skin = r.optional_file_ref()?;
+        r.optional_file_ref()?;
+
+        Ok(())
+    }
+
+    fn read_chunk_03059003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    where
+        R: Read,
+    {
+        r.u32()?; // 0
+        self.effect = r.optional_file_ref()?;
+
+        Ok(())
+    }
+
+    fn write<W, I, N>(&self, w: &mut Writer<W, I, N>) -> WriteResult
     where
         W: Write,
     {
@@ -127,6 +143,18 @@ impl Skin {
         }
 
         Ok(())
+    }
+}
+
+impl<R, I, N> ReadBody<R, I, N> for Skin
+where
+    R: Read,
+{
+    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
+        &[
+            (0x03059002, ReadChunk::Read(Self::read_chunk_03059002)),
+            (0x03059003, ReadChunk::Read(Self::read_chunk_03059003)),
+        ]
     }
 }
 
@@ -623,7 +651,7 @@ impl Map {
             let mut r = Reader::with_id_and_node_state(
                 Cursor::new(body.as_slice()),
                 reader::IdState::new(),
-                NodeState::new(header.num_nodes as usize),
+                reader::NodeState::new(header.num_nodes as usize),
             );
 
             r.chunk_id(0x0304300D)?;

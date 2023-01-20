@@ -12,6 +12,9 @@ categories = ["encoding", "parser-implementations"]
 name = "bench"
 harness = false
 
+[profile.bench]
+debug = true
+
 [dependencies]
 indexmap = "1.9.2"
 minilzo = { path = "../minilzo" }

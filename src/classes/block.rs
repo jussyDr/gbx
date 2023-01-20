@@ -1,6 +1,6 @@
 use crate::error::ReadResult;
-use crate::gbx::{self, Class, ReadBody, ReadChunk, ReadChunkFn, ReadClass};
-use crate::reader::{IdState, NodeState, Reader};
+use crate::gbx::{self, Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader};
+use crate::reader::{self, Reader};
 use crate::RcStr;
 use std::borrow::BorrowMut;
 use std::fs::File;
@@ -31,12 +31,10 @@ impl Block {
         Self::read_from(reader)
     }
 
-    fn read_chunk_2e001003<R, I: BorrowMut<IdState>, N>(
-        &mut self,
-        r: &mut Reader<R, I, N>,
-    ) -> ReadResult<()>
+    fn read_chunk_2e001003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
+        I: BorrowMut<reader::IdState>,
     {
         r.optional_id()?;
         r.u32()?;
@@ -72,12 +70,10 @@ impl Block {
         Ok(())
     }
 
-    fn read_chunk_2e001009<R, I: BorrowMut<IdState>, N>(
-        &mut self,
-        r: &mut Reader<R, I, N>,
-    ) -> ReadResult<()>
+    fn read_chunk_2e001009<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
+        I: BorrowMut<reader::IdState>,
     {
         let _name = r.string()?;
         r.u32()?;
@@ -86,12 +82,10 @@ impl Block {
         Ok(())
     }
 
-    fn read_chunk_2e00100b<R, I: BorrowMut<IdState>, N>(
-        &mut self,
-        r: &mut Reader<R, I, N>,
-    ) -> ReadResult<()>
+    fn read_chunk_2e00100b<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
+        I: BorrowMut<reader::IdState>,
     {
         r.u32()?;
         r.u32()?;
@@ -223,12 +217,11 @@ impl Block {
         Ok(())
     }
 
-    fn read_chunk_2e002019<R, I: BorrowMut<IdState>, N: BorrowMut<NodeState>>(
-        &mut self,
-        r: &mut Reader<R, I, N>,
-    ) -> ReadResult<()>
+    fn read_chunk_2e002019<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read + Seek,
+        I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
     {
         let version = r.u32()?;
         r.u32()?;
@@ -391,12 +384,10 @@ impl Block {
         Ok(())
     }
 
-    fn read_chunk_2e00201c<R, I, N: BorrowMut<NodeState>>(
-        &mut self,
-        r: &mut Reader<R, I, N>,
-    ) -> ReadResult<()>
+    fn read_chunk_2e00201c<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read + Seek,
+        N: BorrowMut<reader::NodeState>,
     {
         r.u32()?;
         r.node(0x2E020000, |r| {
@@ -478,9 +469,12 @@ impl Class for Block {
     const CLASS_ID: u32 = 0x2E002000;
 }
 
-impl ReadClass for Block {
-    fn header_chunks<'a, R: Read, I: BorrowMut<IdState>, N>(
-    ) -> &'a [(u32, ReadChunkFn<Self, R, I, N>)] {
+impl<R, I, N> ReadHeader<R, I, N> for Block
+where
+    R: Read,
+    I: BorrowMut<reader::IdState>,
+{
+    fn header_chunks<'a>() -> &'a [(u32, ReadChunkFn<Self, R, I, N>)] {
         &[
             (0x2e001003, Self::read_chunk_2e001003),
             (0x2e001004, Self::read_chunk_2e001004),
@@ -491,9 +485,13 @@ impl ReadClass for Block {
     }
 }
 
-impl ReadBody for Block {
-    fn body_chunks<'a, R: Read + Seek, I: BorrowMut<IdState>, N: BorrowMut<NodeState>>(
-    ) -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
+impl<R, I, N> ReadBody<R, I, N> for Block
+where
+    R: Read + Seek,
+    I: BorrowMut<reader::IdState>,
+    N: BorrowMut<reader::NodeState>,
+{
+    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
         &[
             (0x2E001009, ReadChunk::Read(Self::read_chunk_2e001009)),
             (0x2E00100B, ReadChunk::Read(Self::read_chunk_2e00100b)),

@@ -1,8 +1,7 @@
-use crate::error::ReadResult;
+use crate::error::{ReadError, ReadResult};
 use crate::header::{Compression, Header};
 use crate::reader::{self, IdState, NodeState, Reader};
 use crate::ref_table::RefTable;
-use std::borrow::BorrowMut;
 use std::io::{Cursor, Read, Seek};
 
 pub type ReadChunkFn<T, R, I, N> = fn(&mut T, &mut Reader<R, I, N>) -> ReadResult<()>;
@@ -17,24 +16,23 @@ pub trait Class {
     const CLASS_ID: u32;
 }
 
-pub trait ReadBody: Sized {
-    fn body_chunks<'a, R, I, N>() -> &'a [(u32, ReadChunk<Self, R, I, N>)]
-    where
-        R: Read + Seek,
-        I: BorrowMut<IdState>,
-        N: BorrowMut<NodeState>;
+pub trait ReadHeader<R, I, N> {
+    fn header_chunks<'a>() -> &'a [(u32, ReadChunkFn<Self, R, I, N>)];
 }
 
-pub trait ReadClass: Default + Class + ReadBody {
-    fn header_chunks<'a, R, I, N>() -> &'a [(u32, ReadChunkFn<Self, R, I, N>)]
-    where
-        R: Read,
-        I: BorrowMut<IdState>;
+pub trait ReadBody<R, I, N>
+where
+    Self: Sized,
+{
+    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)];
 }
 
 pub fn read<T, R>(reader: R) -> ReadResult<T>
 where
-    T: ReadClass,
+    T: Default
+        + Class
+        + for<'a, 'b> ReadHeader<&'a [u8], &'b mut IdState, ()>
+        + ReadBody<Cursor<Vec<u8>>, IdState, NodeState>,
     R: Read,
 {
     let mut node = T::default();
@@ -53,13 +51,16 @@ where
             Ok((chunk_id, size))
         })?;
 
-        let mut id_state = reader::IdState::new();
+        let mut id_state = IdState::new();
         let mut i = 0;
 
         for (chunk_id, size) in user_data_chunks {
             loop {
                 let header_chunks = T::header_chunks();
-                let (header_chunk_id, read_fn) = header_chunks.get(i).unwrap();
+
+                let (header_chunk_id, read_fn) = header_chunks
+                    .get(i)
+                    .ok_or_else(|| ReadError::Generic(format!("Unknown chunk {chunk_id:08X}")))?;
 
                 if *header_chunk_id == chunk_id {
                     let bytes = r.bytes(size as usize)?;
@@ -81,7 +82,7 @@ where
         let compressed_body = r.bytes(compressed_body_size as usize)?;
         let mut body = vec![0; body_size as usize];
 
-        minilzo::decompress_to_slice(&compressed_body, &mut body).unwrap();
+        minilzo::decompress_to_slice(&compressed_body, &mut body)?;
 
         let mut r = Reader::with_id_and_node_state(
             Cursor::new(body),
@@ -99,10 +100,8 @@ where
 
 pub fn read_body<T, R, I, N>(node: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
 where
-    T: ReadBody,
+    T: ReadBody<R, I, N>,
     R: Read + Seek,
-    I: BorrowMut<IdState>,
-    N: BorrowMut<NodeState>,
 {
     let mut i = 0;
 
@@ -115,7 +114,10 @@ where
 
         loop {
             let body_chunks = T::body_chunks();
-            let (body_chunk_id, read_chunk) = body_chunks.get(i).unwrap();
+
+            let (body_chunk_id, read_chunk) = body_chunks
+                .get(i)
+                .ok_or_else(|| ReadError::Generic(format!("Unknown chunk {chunk_id:08X}")))?;
 
             if *body_chunk_id == chunk_id {
                 match read_chunk {
@@ -127,7 +129,7 @@ where
                     }
                     ReadChunk::ReadSkippable(read_fn) => {
                         r.u32()?;
-                        let size = r.u32()?;
+                        let _size = r.u32()?;
                         read_fn(node, r)?;
                     }
                 }
