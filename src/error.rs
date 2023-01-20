@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 use std::io;
 use std::str::Utf8Error;
 
-/// Error while reading.
+/// Read error.
 #[derive(Debug)]
 pub enum ReadError {
     Generic(String),

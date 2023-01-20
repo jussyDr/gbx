@@ -145,7 +145,11 @@ where
     }
 
     pub fn file_ref(&mut self) -> ReadResult<FileRef> {
-        Ok(self.optional_file_ref()?.unwrap())
+        let file_ref = self
+            .optional_file_ref()?
+            .ok_or_else(|| ReadError::Generic(String::from("expected file ref, got null")))?;
+
+        Ok(file_ref)
     }
 
     pub fn optional_file_ref(&mut self) -> ReadResult<Option<FileRef>> {
@@ -161,11 +165,11 @@ where
             Ok(None)
         } else if hash[0] == 2 && hash[1..].iter().all(|&byte| byte == 0) && locator_url.is_empty()
         {
-            Ok(Some(FileRef::Internal { path }))
+            Ok(Some(FileRef::Internal { path: path.into() }))
         } else {
             Ok(Some(FileRef::External {
                 hash,
-                path,
+                path: path.into(),
                 locator_url,
             }))
         }

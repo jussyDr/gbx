@@ -229,7 +229,7 @@ where
 #[derive(Default)]
 pub struct Block {
     /// Id of the block's model.
-    pub id: RcStr,
+    pub model_id: RcStr,
     /// Direction of the block.
     pub dir: Direction,
     /// Coordinate of the block.
@@ -254,12 +254,12 @@ pub struct Block {
 #[derive(Default)]
 pub struct FreeBlock {
     /// Id of the block's model.
-    pub id: RcStr,
+    pub model_id: RcStr,
     /// Skin of the block, e.g. for signs.
     pub skin: Option<Skin>,
     /// Waypoint property.
     pub waypoint_property: Option<WaypointProperty>,
-    /// Position of the block.
+    /// Absolute position of the block.
     pub pos: Vec3<f32>,
     /// Yaw rotation of the block.
     pub yaw: f32,
@@ -273,9 +273,11 @@ pub struct FreeBlock {
     pub lightmap_quality: LightmapQuality,
 }
 
-/// Either a normal of free block.
+/// Either a 'normal' or free block.
 pub enum BlockType {
+    /// A 'normal' block.
     Normal(Block),
+    /// A free block.
     Free(FreeBlock),
 }
 
@@ -289,7 +291,7 @@ impl Default for BlockType {
 #[derive(Default)]
 pub struct Item {
     /// Id of the item's model.
-    pub id: RcStr,
+    pub model_id: RcStr,
     /// Yaw rotation of the item.
     pub yaw: f32,
     /// Pitch rotation of the item.
@@ -298,7 +300,7 @@ pub struct Item {
     pub roll: f32,
     /// Coord inside the map.
     pub coord: Vec3<u8>,
-    /// Position inside the map.
+    /// Absolute position inside the map.
     pub pos: Vec3<f32>,
     /// Waypoint property.
     pub waypoint_property: Option<WaypointProperty>,
@@ -328,7 +330,7 @@ impl Item {
         I: BorrowMut<reader::IdState>,
     {
         r.u32()?; // 8
-        self.id = r.id()?;
+        self.model_id = r.id()?;
         r.u32()?; // 26
         let _author = r.optional_id()?; // "Nadeo"
         self.yaw = r.f32()?;
@@ -390,11 +392,11 @@ pub struct Map {
     pub cost: u32,
     /// Number of checkpoints needed to finish the map.
     pub num_cps: u32,
-    /// Number of laps if multilap.
+    /// Number of laps if the map is multilap.
     pub num_laps: Option<u32>,
     /// Name of the map.
     pub name: String,
-    /// Name of the map decoration.
+    /// Id of the map decoration.
     pub deco_name: RcStr,
     /// Optional thumbnail of the map as raw JPEG.
     pub thumbnail: Option<Vec<u8>>,
@@ -671,7 +673,7 @@ impl Map {
         let num_blocks = r.u32()?;
         self.blocks = Vec::with_capacity(num_blocks as usize);
         while r.peek_u32()? & 0x4FFFF000 == 0x40000000 {
-            let id = r.id()?;
+            let model_id = r.id()?;
             let dir = Direction::try_from(r.u8()?).unwrap();
             let x = r.u8()?;
             let y = r.u8()?;
@@ -703,14 +705,14 @@ impl Map {
 
             let block_type = if flags & 0x20000000 != 0 {
                 BlockType::Free(FreeBlock {
-                    id,
+                    model_id,
                     skin,
                     waypoint_property,
                     ..Default::default()
                 })
             } else {
                 BlockType::Normal(Block {
-                    id,
+                    model_id,
                     dir,
                     coord: Vec3 { x, y, z },
                     is_ground,
@@ -833,7 +835,7 @@ impl Map {
         let num_baked_blocks = r.u32()?;
         self.baked_blocks = Vec::with_capacity(num_baked_blocks as usize);
         while r.peek_u32()? & 0x4FFFF000 == 0x40000000 {
-            let id = r.id()?;
+            let model_id = r.id()?;
             let dir = Direction::try_from(r.u8()?).unwrap();
             let x = r.u8()?;
             let y = r.u8()?;
@@ -853,12 +855,12 @@ impl Map {
 
             let block_type = if flags & 0x20000000 != 0 {
                 BlockType::Free(FreeBlock {
-                    id,
+                    model_id,
                     ..Default::default()
                 })
             } else {
                 BlockType::Normal(Block {
-                    id,
+                    model_id,
                     dir,
                     coord: Vec3 { x, y, z },
                     is_ghost,

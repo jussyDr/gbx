@@ -2,7 +2,7 @@
 
 #![allow(clippy::approx_constant)]
 
-/// Error handling types.
+/// Error types.
 pub mod error;
 
 mod classes {

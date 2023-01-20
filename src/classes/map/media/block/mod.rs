@@ -45,7 +45,7 @@ impl EffectSimi {
     }
 }
 
-/// Triangles 2D or 3D media block.
+/// 2D or 3D triangles media block.
 #[derive(Clone)]
 pub struct Triangles;
 
