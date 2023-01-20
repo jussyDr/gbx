@@ -378,6 +378,15 @@ where
 }
 
 /// Type corresponding to the file extension `Map.Gbx`.
+///
+/// # Examples
+///
+/// ```no_run
+/// # fn main() -> gbx::error::ReadResult<()> {
+/// let map = gbx::Map::read_from_file("MyMap.Map.Gbx")?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Default)]
 pub struct Map {
     /// Bronze medal time in milliseconds.
@@ -404,7 +413,6 @@ pub struct Map {
     pub author_name: String,
     /// Zone of the map author.
     pub author_zone: String,
-
     /// `true` if the map has been validated.
     pub is_validated: bool,
     /// Optional texture mod.

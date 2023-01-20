@@ -8,9 +8,18 @@ use std::io::{BufReader, Read, Seek};
 use std::path::Path;
 
 /// Type corresponding to the file extension `Block.Gbx`.
+///
+/// # Examples
+///
+/// ```no_run
+/// # fn main() -> gbx::error::ReadResult<()> {
+/// let block = gbx::Block::read_from_file("MyBlock.Block.Gbx")?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Default)]
 pub struct Block {
-    /// Name of the block info archetype.
+    /// Id of the block info archetype.
     pub archetype: RcStr,
 }
 
