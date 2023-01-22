@@ -91,6 +91,11 @@ impl RcStr {
     pub const fn empty() -> Self {
         Self(None)
     }
+
+    /// Extract the string slice.
+    pub fn as_str(&self) -> &str {
+        self
+    }
 }
 
 impl Deref for RcStr {
