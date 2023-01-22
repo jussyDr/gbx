@@ -808,12 +808,9 @@ impl Map {
             let mut r = Reader::with_id_state(Cursor::new(bytes), reader::IdState::new());
             r.u32()?;
             self.items = r.list(|r| r.flat_node(0x03101000, Item::read))?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
+            r.list(|r| r.u32())?;
+            r.list(|r| r.u32())?;
+            r.list(|r| r.u32())?;
         }
 
         Ok(())
