@@ -440,7 +440,7 @@ pub struct Map {
     /// The length is equal to the number of files in the `embedded_files` ZIP archive.
     pub embedded_file_ids: Vec<RcStr>,
     /// All files embedded in the map as a raw ZIP archive.
-    pub embedded_files: Vec<u8>,
+    pub embedded_files: Option<Vec<u8>>,
 
     baked_blocks: Vec<BlockType>,
 }
@@ -920,7 +920,7 @@ impl Map {
             let size = r.u32()?;
             if size > 0 {
                 let bytes = r.bytes(size as usize)?;
-                self.embedded_files = bytes;
+                self.embedded_files = Some(bytes);
             }
             r.u32()?; // 0
         }
