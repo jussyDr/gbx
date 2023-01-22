@@ -6,7 +6,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Seek, Write};
 use std::path::Path;
 
-fn fetch_mania_exchange_file(url: &str, hash_base64: &str) -> Result<File> {
+fn fetch_file(url: &str, hash_base64: &str) -> Result<File> {
     let path = Path::new(env!("CARGO_TARGET_TMPDIR")).join(hash_base64);
 
     let file = if path.try_exists()? {
@@ -49,7 +49,7 @@ fn read_block() -> Result<()> {
             println!("read block {block_id}");
 
             let url = format!("https://item.exchange/item/download/{block_id}");
-            let file = fetch_mania_exchange_file(&url, hash)?;
+            let file = fetch_file(&url, hash)?;
             let reader = BufReader::new(file);
 
             Block::read_from(reader).unwrap();
@@ -66,7 +66,7 @@ fn read_map() -> Result<()> {
             println!("read map {map_id}");
 
             let url = format!("https://trackmania.exchange/maps/download/{map_id}");
-            let file = fetch_mania_exchange_file(&url, hash)?;
+            let file = fetch_file(&url, hash)?;
             let reader = BufReader::new(file);
 
             Map::read_from(reader).unwrap();
