@@ -7,7 +7,7 @@ use std::str::Utf8Error;
 pub enum ReadError {
     Generic(String),
     Utf8(Utf8Error),
-    Lzo(minilzo::Error),
+    Lzo(lzo1x::Error),
     Io(io::Error),
 }
 
@@ -17,8 +17,8 @@ impl From<Utf8Error> for ReadError {
     }
 }
 
-impl From<minilzo::Error> for ReadError {
-    fn from(err: minilzo::Error) -> Self {
+impl From<lzo1x::Error> for ReadError {
+    fn from(err: lzo1x::Error) -> Self {
         Self::Lzo(err)
     }
 }

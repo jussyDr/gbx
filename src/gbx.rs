@@ -82,7 +82,7 @@ where
         let compressed_body = r.bytes(compressed_body_size as usize)?;
         let mut body = vec![0; body_size as usize];
 
-        minilzo::decompress_to_slice(&compressed_body, &mut body)?;
+        lzo1x::decompress_to_slice(&compressed_body, &mut body)?;
 
         let mut r = Reader::with_id_and_node_state(
             Cursor::new(body),
