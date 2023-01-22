@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 /// A 3-dimensional vector.
 #[derive(Clone, PartialEq, Eq, Hash, Default, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Vec3<T> {
     /// X component.
     pub x: T,
