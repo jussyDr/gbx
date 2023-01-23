@@ -1,5 +1,6 @@
 use crate::error::{ReadError, ReadResult};
 use crate::types::{ExternalFileRef, FileRef, InternalFileRef, RcStr};
+use crate::Vec3;
 use std::any::Any;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek, SeekFrom};
@@ -142,6 +143,30 @@ where
     {
         let len = self.u32()?;
         self.repeat(len as usize, read_fn)
+    }
+
+    pub fn vec3u8(&mut self) -> ReadResult<Vec3<u8>> {
+        let x = self.u8()?;
+        let y = self.u8()?;
+        let z = self.u8()?;
+
+        Ok(Vec3 { x, y, z })
+    }
+
+    pub fn vec3u32(&mut self) -> ReadResult<Vec3<u32>> {
+        let x = self.u32()?;
+        let y = self.u32()?;
+        let z = self.u32()?;
+
+        Ok(Vec3 { x, y, z })
+    }
+
+    pub fn vec3f32(&mut self) -> ReadResult<Vec3<f32>> {
+        let x = self.f32()?;
+        let y = self.f32()?;
+        let z = self.f32()?;
+
+        Ok(Vec3 { x, y, z })
     }
 
     pub fn optional_internal_file_ref(&mut self) -> ReadResult<Option<InternalFileRef>> {

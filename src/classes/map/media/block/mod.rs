@@ -477,14 +477,9 @@ impl Sound {
             r.u32()?;
             let volume = r.f32()?;
             r.u32()?;
-            let x = r.f32()?;
-            let y = r.f32()?;
-            let z = r.f32()?;
+            let position = r.vec3f32()?;
 
-            Ok(key::Sound {
-                volume,
-                position: Vec3 { x, y, z },
-            })
+            Ok(key::Sound { volume, position })
         })?;
 
         Ok(Self {
@@ -516,18 +511,12 @@ impl Text {
         let effect = r.node_owned(0x07010000, EffectSimi::read)?;
 
         r.chunk_id(0x030A8002)?;
-        let red = r.f32()?;
-        let green = r.f32()?;
-        let blue = r.f32()?;
+        let color = r.vec3f32()?;
 
         Ok(Self {
             effect,
             text,
-            color: Vec3 {
-                x: red,
-                y: green,
-                z: blue,
-            },
+            color,
         })
     }
 }
@@ -574,19 +563,10 @@ impl TransitionFade {
 
             Ok(key::TransitionFade { time, opacity })
         })?;
-        let red = r.f32()?;
-        let green = r.f32()?;
-        let blue = r.f32()?;
+        let color = r.vec3f32()?;
         r.u32()?;
 
-        Ok(Self {
-            keys,
-            color: Vec3 {
-                x: red,
-                y: green,
-                z: blue,
-            },
-        })
+        Ok(Self { keys, color })
     }
 }
 
@@ -607,15 +587,13 @@ impl DepthOfField {
             let focus_distance = r.f32()?;
             let lens_size = r.f32()?;
             let _target = r.u32()?;
-            let x = r.f32()?;
-            let y = r.f32()?;
-            let z = r.f32()?;
+            let target_position = r.vec3f32()?;
 
             Ok(key::DepthOfField {
                 time,
                 focus_distance,
                 lens_size,
-                target_position: Vec3 { x, y, z },
+                target_position,
             })
         })?;
 
@@ -874,9 +852,7 @@ impl Fog {
             let sky_intensity = r.f32()?;
             let distance = r.f32()?;
             r.f32()?;
-            let red = r.f32()?;
-            let green = r.f32()?;
-            let blue = r.f32()?;
+            let color = r.vec3f32()?;
             let cloud_opacity = r.f32()?;
             let cloud_speed = r.f32()?;
 
@@ -885,11 +861,7 @@ impl Fog {
                 intensity,
                 sky_intensity,
                 distance,
-                color: Vec3 {
-                    x: red,
-                    y: green,
-                    z: blue,
-                },
+                color,
                 cloud_opacity,
                 cloud_speed,
             })

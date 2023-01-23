@@ -683,9 +683,7 @@ impl Map {
         while r.peek_u32()? & 0x4FFFF000 == 0x40000000 {
             let model_id = r.id()?;
             let dir = Direction::try_from(r.u8()?).unwrap();
-            let x = r.u8()?;
-            let y = r.u8()?;
-            let z = r.u8()?;
+            let coord = r.vec3u8()?;
             let flags = r.u32()?;
 
             if flags == 0xFFFFFFFF {
@@ -722,7 +720,7 @@ impl Map {
                 BlockType::Normal(Block {
                     model_id,
                     dir,
-                    coord: Vec3 { x, y, z },
+                    coord,
                     is_ground,
                     skin,
                     waypoint_property,
@@ -842,9 +840,7 @@ impl Map {
         while r.peek_u32()? & 0x4FFFF000 == 0x40000000 {
             let model_id = r.id()?;
             let dir = Direction::try_from(r.u8()?).unwrap();
-            let x = r.u8()?;
-            let y = r.u8()?;
-            let z = r.u8()?;
+            let coord = r.vec3u8()?;
             let flags = r.u32()?;
 
             if flags == 0xFFFFFFFF {
@@ -867,7 +863,7 @@ impl Map {
                 BlockType::Normal(Block {
                     model_id,
                     dir,
-                    coord: Vec3 { x, y, z },
+                    coord,
                     is_ghost,
                     ..Default::default()
                 })
@@ -949,32 +945,18 @@ impl Map {
         r.u32()?;
         for block in &mut self.blocks {
             if let BlockType::Free(free_block) = block {
-                let x = r.f32()?;
-                let y = r.f32()?;
-                let z = r.f32()?;
-                let yaw = r.f32()?;
-                let pitch = r.f32()?;
-                let roll = r.f32()?;
-
-                free_block.pos = Vec3 { x, y, z };
-                free_block.yaw = yaw;
-                free_block.pitch = pitch;
-                free_block.roll = roll;
+                free_block.pos = r.vec3f32()?;
+                free_block.yaw = r.f32()?;
+                free_block.pitch = r.f32()?;
+                free_block.roll = r.f32()?;
             }
         }
         for baked_block in &mut self.baked_blocks {
             if let BlockType::Free(free_block) = baked_block {
-                let x = r.f32()?;
-                let y = r.f32()?;
-                let z = r.f32()?;
-                let yaw = r.f32()?;
-                let pitch = r.f32()?;
-                let roll = r.f32()?;
-
-                free_block.pos = Vec3 { x, y, z };
-                free_block.yaw = yaw;
-                free_block.pitch = pitch;
-                free_block.roll = roll;
+                free_block.pos = r.vec3f32()?;
+                free_block.yaw = r.f32()?;
+                free_block.pitch = r.f32()?;
+                free_block.roll = r.f32()?;
             }
         }
 

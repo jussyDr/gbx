@@ -296,13 +296,7 @@ impl ClipGroup {
                 },
                 _ => panic!(),
             };
-            let coords = r.list(|r| {
-                let x = r.u32()?;
-                let y = r.u32()?;
-                let z = r.u32()?;
-
-                Ok(Vec3 { x, y, z })
-            })?;
+            let coords = r.list(|r| r.vec3u32())?;
 
             Ok((condition, coords))
         })?;
