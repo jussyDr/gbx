@@ -24,6 +24,9 @@ pub struct Block {
 }
 
 impl Block {
+    /// Read a block from the given `reader`.
+    ///
+    /// For performance reasons, it is recommended that the `reader` is buffered.
     pub fn read_from<R>(reader: R) -> ReadResult<Self>
     where
         R: Read,
@@ -31,6 +34,7 @@ impl Block {
         gbx::read(reader)
     }
 
+    /// Read a block from a file at the given `path`.
     pub fn read_from_file<P>(path: P) -> ReadResult<Self>
     where
         P: AsRef<Path>,

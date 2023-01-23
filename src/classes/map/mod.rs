@@ -484,6 +484,16 @@ impl Map {
         gbx::read(reader)
     }
 
+    /// Read a map from a file at the given `path`.
+    pub fn read_from_file<P>(path: P) -> ReadResult<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        Self::read_from(reader)
+    }
+
     fn read_chunk_03043002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
@@ -1052,16 +1062,6 @@ impl Map {
         }
 
         Ok(())
-    }
-
-    // Read a map from a file at the given `path`.
-    pub fn read_from_file<P>(path: P) -> ReadResult<Self>
-    where
-        P: AsRef<Path>,
-    {
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-        Self::read_from(reader)
     }
 }
 
