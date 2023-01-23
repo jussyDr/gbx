@@ -59,8 +59,18 @@ pub struct Track {
     pub repeat_track_segment: Option<TrackSegment>,
 }
 
+impl Default for Track {
+    fn default() -> Self {
+        Self {
+            blocks: Vec::default(),
+            keep_last_block_active: true,
+            repeat_track_segment: Option::default(),
+        }
+    }
+}
+
 /// A media clip.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Clip {
     /// All tracks of this clip.
     pub tracks: Vec<Track>,
@@ -177,6 +187,18 @@ impl Clip {
     }
 }
 
+impl Default for Clip {
+    fn default() -> Self {
+        Self {
+            tracks: Vec::default(),
+            name: String::default(),
+            stop_on_leave: false,
+            stop_on_respawn: true,
+            can_trigger_before_start: false,
+        }
+    }
+}
+
 /// Condition to trigger a media clip.
 #[derive(Clone, Default, Debug)]
 #[non_exhaustive]
@@ -216,7 +238,7 @@ pub enum Condition {
 }
 
 /// A media clip and its trigger conditions.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ClipTrigger {
     /// The clip which gets activated by the trigger conditions.
     pub clip: Clip,
@@ -227,7 +249,7 @@ pub struct ClipTrigger {
 }
 
 /// A media clip group.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ClipGroup {
     /// All the clips and associated triggers in this clip group.
     pub clips: Vec<ClipTrigger>,
@@ -240,6 +262,8 @@ impl ClipGroup {
         I: BorrowMut<reader::IdState>,
         N: BorrowMut<reader::NodeState>,
     {
+        let mut clip_group = Self::default();
+
         r.chunk_id(0x0307A003)?;
         r.u32()?; // 10
         let clips = r.list(|r| r.node_owned(0x03079000, Clip::read))?;
@@ -301,7 +325,7 @@ impl ClipGroup {
             Ok((condition, coords))
         })?;
 
-        let clips = clips
+        clip_group.clips = clips
             .into_iter()
             .zip(triggers)
             .map(|(clip, (condition, coords))| ClipTrigger {
@@ -313,6 +337,6 @@ impl ClipGroup {
 
         r.node_end()?;
 
-        Ok(Self { clips })
+        Ok(clip_group)
     }
 }

@@ -1,7 +1,5 @@
 //! A (incomplete) GameBox (.Gbx) file reader and writer for Trackmania (2020).
 
-#![allow(clippy::approx_constant)]
-
 /// Error types.
 pub mod error;
 

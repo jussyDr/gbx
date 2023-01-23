@@ -8,6 +8,7 @@ use crate::types::{RcStr, Vec3};
 use crate::{gbx, FileRef, Ghost};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::borrow::BorrowMut;
+use std::cmp::Ordering;
 use std::fs::File;
 use std::io::{BufReader, Cursor, Read, Seek};
 use std::ops::Sub;
@@ -33,7 +34,7 @@ impl Sub for Direction {
 }
 
 /// Color of a block or item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Color {
     #[default]
@@ -46,7 +47,7 @@ pub enum Color {
 }
 
 /// Lightmap quality of a block or item.
-#[derive(Clone, Copy, Default, Debug, TryFromPrimitive, IntoPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
 #[repr(u8)]
 pub enum LightmapQuality {
     #[default]
@@ -59,8 +60,30 @@ pub enum LightmapQuality {
     Lowest,
 }
 
+impl PartialOrd for LightmapQuality {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for LightmapQuality {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let order: fn(LightmapQuality) -> u8 = |lightmap_quality| match lightmap_quality {
+            Self::Lowest => 0,
+            Self::VeryLow => 1,
+            Self::Low => 2,
+            Self::Normal => 3,
+            Self::High => 4,
+            Self::VeryHigh => 5,
+            Self::Highest => 6,
+        };
+
+        order(*self).cmp(&order(*other))
+    }
+}
+
 /// Animation phase offset of a moving item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PhaseOffset {
     #[default]
@@ -131,7 +154,7 @@ where
 }
 
 /// Order of a start, finish or multilap block or item in royal.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, TryFromPrimitive, IntoPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, TryFromPrimitive)]
 #[repr(u32)]
 pub enum RoyalOrder {
     /// First.

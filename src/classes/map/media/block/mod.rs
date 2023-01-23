@@ -940,7 +940,7 @@ impl Entity {
 }
 
 /// Visibility of a opponent visibility media block.
-#[derive(Clone, Copy, PartialEq, Eq, Default, Debug, TryFromPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
 #[non_exhaustive]
 #[repr(u32)]
 pub enum Visibility {
