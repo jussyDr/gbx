@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use base64::Engine;
 use gbx::{Block, Map};
+use paste::paste;
 use sha2::{Digest, Sha256};
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Seek, Write};
@@ -42,36 +43,53 @@ fn fetch_file(url: &str, hash_base64: &str) -> Result<File> {
     Ok(file)
 }
 
-#[test]
-fn read_block() -> Result<()> {
-    for line in include_str!("blocks.txt").lines() {
-        if let [block_id, hash] = line.split_whitespace().collect::<Vec<_>>()[..] {
-            println!("read block {block_id}");
+fn test_read_block(block_id: u32, hash: &str) {
+    let url = format!("https://item.exchange/item/download/{block_id}");
+    let file = fetch_file(&url, hash).unwrap();
+    let reader = BufReader::new(file);
 
-            let url = format!("https://item.exchange/item/download/{block_id}");
-            let file = fetch_file(&url, hash)?;
-            let reader = BufReader::new(file);
-
-            Block::read_from(reader).unwrap();
-        }
-    }
-
-    Ok(())
+    Block::read_from(reader).unwrap();
 }
 
-#[test]
-fn read_map() -> Result<()> {
-    for line in include_str!("maps.txt").lines() {
-        if let [map_id, hash] = line.split_whitespace().collect::<Vec<_>>()[..] {
-            println!("read map {map_id}");
-
-            let url = format!("https://trackmania.exchange/maps/download/{map_id}");
-            let file = fetch_file(&url, hash)?;
-            let reader = BufReader::new(file);
-
-            Map::read_from(reader).unwrap();
+macro_rules! test_read_block {
+    ($id:literal, $hash:literal) => {
+        paste! {
+            #[test]
+            fn [<read_block_ $id>]() {
+                test_read_block($id, $hash);
+            }
         }
-    }
-
-    Ok(())
+    };
 }
+
+test_read_block!(5899, "Of3Y0ecMmelzrYhrqseEjkq16yvUXsPTS5WZGS_5Bdc");
+test_read_block!(19019, "OLMBYCB4V32uQKAP39qdV8pEY8j1Mmd36cYfzoZWQIs");
+test_read_block!(43839, "DquHIX6wG-cgI_x68oqH81sdhAZCC7IX9YJ_4qlA6Gw");
+test_read_block!(44867, "U6JKwKAv62gS_KLHuJpaSc0Ri5mHvbitGodiceC-5qI");
+
+fn test_read_map(map_id: u32, hash: &str) {
+    let url = format!("https://trackmania.exchange/maps/download/{map_id}");
+    let file = fetch_file(&url, hash).unwrap();
+    let reader = BufReader::new(file);
+
+    Map::read_from(reader).unwrap();
+}
+
+macro_rules! test_read_map {
+    ($id:literal, $hash:literal) => {
+        paste! {
+            #[test]
+            fn [<read_map_ $id>]() {
+                test_read_map($id, $hash);
+            }
+        }
+    };
+}
+
+test_read_map!(1795, "vyYfYNInhD4KdTtKBx9InfspQblAPqN7llCGq-q40mI");
+test_read_map!(1984, "_eAiK0BClvjSW9hp9j1RgYuKCVl250e3QXreRsa1440");
+test_read_map!(19387, "AynCKf2FlfrPeQHGXpaRpvEn02iEaqedY6I9NYxMZSI");
+test_read_map!(46951, "RZY3fk02zYm2UrTSQx3xdl1omZ7GC1c5rY4CzD5WvXs");
+test_read_map!(59807, "zZIa_CIe3s7-NFvT9kfcQh0w4wugFTRCpF-3zgDVoQM");
+test_read_map!(65123, "zTIsc39uOpH6DZel064l9vMqod207-3oWX2U8TCybhs");
+test_read_map!(81283, "kchS0VpCEqL23krWoZt5Dm1I6by_kwy384HgRNRHT8k");

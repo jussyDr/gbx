@@ -144,17 +144,9 @@ where
         self.repeat(len as usize, read_fn)
     }
 
-    pub fn file_ref(&mut self) -> ReadResult<FileRef> {
-        let file_ref = self
-            .optional_file_ref()?
-            .ok_or_else(|| ReadError::Generic(String::from("expected file ref, got null")))?;
-
-        Ok(file_ref)
-    }
-
     pub fn optional_file_ref(&mut self) -> ReadResult<Option<FileRef>> {
         if self.u8()? != 3 {
-            todo!()
+            return Err(ReadError::Generic(String::from("Invalid file ref version")));
         }
 
         let hash = self.bytes_array()?;
@@ -243,6 +235,7 @@ impl<R, I, N> Reader<R, I, N>
 where
     R: Read + Seek,
 {
+    #[allow(unused)]
     pub fn peek_bytes(&mut self, n: usize) -> ReadResult<Vec<u8>> {
         let bytes = self.bytes(n)?;
         self.inner.seek(SeekFrom::Current(-(n as i64)))?;
@@ -496,14 +489,5 @@ where
         } else {
             Err(ReadError::Generic(String::from("invalid node index")))
         }
-    }
-
-    pub fn any_optional_node_owned<T, F>(&mut self, read_fn: F) -> ReadResult<Option<T>>
-    where
-        T: 'static + Clone,
-        F: FnMut(&mut Self, u32) -> ReadResult<T>,
-    {
-        self.any_optional_node(read_fn)
-            .map(|optional_node| optional_node.cloned())
     }
 }

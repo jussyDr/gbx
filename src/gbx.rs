@@ -17,6 +17,7 @@ pub trait Class {
 }
 
 pub trait ReadHeader<R, I, N> {
+    #[allow(clippy::type_complexity)]
     fn header_chunks<'a>() -> &'a [(u32, ReadChunkFn<Self, R, I, N>)];
 }
 
@@ -24,6 +25,7 @@ pub trait ReadBody<R, I, N>
 where
     Self: Sized,
 {
+    #[allow(clippy::type_complexity)]
     fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)];
 }
 

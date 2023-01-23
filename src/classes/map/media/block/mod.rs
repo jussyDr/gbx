@@ -314,33 +314,35 @@ impl CameraPath {
 
 /// Camera custom media block.
 #[derive(Clone)]
-pub struct CameraCustom;
+pub struct CameraCustom {
+    pub keys: Vec<key::CameraCustom>,
+}
 
 impl CameraCustom {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
-        R: Read,
+        R: Read + Seek,
     {
         r.chunk_id(0x030A2006)?;
         r.u32()?;
-        let _keys = r.list(|r| {
+        let keys = r.list(|r| {
+            let _time = r.f32()?;
+            let _interpolation = r.u32()?;
+            let _anchor_rotation = r.bool()?;
+            let _anchor = r.u32()?; // 0xFFFFFFFF = None, 0 = Local Player
+            let _show_anchor = r.bool()?;
+            let _target = r.u32()?; // 0xFFFFFFFF = None, 0 = Local Player
+            let _x = r.f32()?;
+            let _y = r.f32()?;
+            let _z = r.f32()?;
+            let _pitch = r.f32()?;
+            let _yaw = r.f32()?;
+            let _roll = r.f32()?;
+            let _fov = r.f32()?;
             r.u32()?;
             r.u32()?;
             r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
+            let _z_near = r.f32()?;
             r.u32()?;
             r.u32()?;
             r.u32()?;
@@ -364,10 +366,10 @@ impl CameraCustom {
             r.u32()?;
             r.u32()?;
 
-            Ok(())
+            Ok(key::CameraCustom)
         })?;
 
-        Ok(Self)
+        Ok(Self { keys })
     }
 }
 

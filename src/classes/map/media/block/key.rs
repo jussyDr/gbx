@@ -12,6 +12,10 @@ pub struct Time {
     pub tangent: f32,
 }
 
+/// Camera custom media block key.
+#[derive(Clone, Debug)]
+pub struct CameraCustom;
+
 /// Camera shake effect media block key.
 #[derive(Clone, Debug)]
 pub struct CameraShakeEffect {

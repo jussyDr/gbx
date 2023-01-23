@@ -32,7 +32,7 @@ impl Sub for Direction {
     }
 }
 
-/// Color of a block/item.
+/// Color of a block or item.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
 #[repr(u8)]
 pub enum Color {
@@ -45,7 +45,7 @@ pub enum Color {
     Black,
 }
 
-/// Lightmap quality of a block/item.
+/// Lightmap quality of a block or item.
 #[derive(Clone, Copy, Default, Debug, TryFromPrimitive, IntoPrimitive)]
 #[repr(u8)]
 pub enum LightmapQuality {
@@ -74,7 +74,7 @@ pub enum PhaseOffset {
     Seven8th,
 }
 
-/// Skin of a block/item.
+/// Skin of a block or item.
 #[derive(Clone, Default)]
 pub struct Skin {
     /// The skin.
@@ -130,8 +130,8 @@ where
     }
 }
 
-/// Order of a start, finish or multilap block/item in royal.
-#[derive(Clone, Copy, Debug, TryFromPrimitive, IntoPrimitive)]
+/// Order of a start, finish or multilap block or item in royal.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, TryFromPrimitive, IntoPrimitive)]
 #[repr(u32)]
 pub enum RoyalOrder {
     /// First.
@@ -146,7 +146,7 @@ pub enum RoyalOrder {
     Black,
 }
 
-/// Waypoint property of a block/item.
+/// Waypoint property of a block or item.
 #[derive(Clone, Default, Debug)]
 #[non_exhaustive]
 pub enum WaypointProperty {

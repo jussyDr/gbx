@@ -42,31 +42,51 @@ pub enum Block {
     OpponentVisibility(block::OpponentVisibility),
 }
 
+#[derive(Clone)]
+pub struct TrackSegment {
+    pub start: f32,
+    pub end: f32,
+}
+
 /// A media track.
 #[derive(Clone)]
 pub struct Track {
     /// All blocks of this track.
     pub blocks: Vec<Block>,
+    /// Whether the last block of the track should remain active after the end time.
+    pub keep_last_block_active: bool,
+    /// Track segment which should be repeated after the end time.
+    pub repeat_track_segment: Option<TrackSegment>,
 }
 
 /// A media clip.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Clip {
     /// All tracks of this clip.
     pub tracks: Vec<Track>,
+    /// Name of the clip.
+    pub name: String,
+    /// Stop the clip when the player leaves the trigger.
+    pub stop_on_leave: bool,
+    /// Stop the clip when the player respawns.
+    pub stop_on_respawn: bool,
+    /// `true` if the clip can trigger before the start the a race.
+    pub can_trigger_before_start: bool,
 }
 
 impl Clip {
-    pub fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
         N: BorrowMut<reader::NodeState>,
     {
+        let mut clip = Self::default();
+
         r.chunk_id(0x0307900D)?;
         r.u32()?; // 0
         r.u32()?; // 10
-        let tracks = r.list(|r| {
+        clip.tracks = r.list(|r| {
             r.node_owned(0x03078000, |r| {
                 r.chunk_id(0x03078001)?;
                 let _name = r.string()?;
@@ -120,47 +140,84 @@ impl Clip {
 
                 r.chunk_id(0x03078005)?;
                 r.u32()?;
+                let keep_last_block_active = r.bool()?;
                 r.u32()?;
-                r.u32()?;
-                r.u32()?;
-                r.u32()?;
-                r.u32()?;
+                let repeat_track_segment = r.bool()?;
+                let start = r.f32()?;
+                let end = r.f32()?;
 
                 r.node_end()?;
 
-                Ok(Track { blocks })
+                Ok(Track {
+                    blocks,
+                    keep_last_block_active,
+                    repeat_track_segment: repeat_track_segment
+                        .then_some(TrackSegment { start, end }),
+                })
             })
         })?;
-        let _name = r.string()?;
+        clip.name = r.string()?;
+        clip.stop_on_leave = r.bool()?;
         r.u32()?;
+        clip.stop_on_respawn = r.bool()?;
         r.u32()?;
-        r.u32()?;
-        r.u32()?;
-        r.u32()?;
+        r.f32()?;
         r.u32()?;
 
-        r.skip_optional_chunk(0x0307900E)?;
+        r.optional_skippable_chunk(0x0307900E, |r| {
+            r.u32()?;
+            clip.can_trigger_before_start = r.bool()?;
+
+            Ok(())
+        })?;
 
         r.node_end()?;
 
-        Ok(Clip { tracks })
+        Ok(clip)
     }
 }
 
-/// Condition to activate a media clip.
+/// Condition to trigger a media clip.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Condition {
     None,
-    RaceTimeLessThan { time: f32 },
-    RaceTimeGreaterThan { time: f32 },
-    AlreadyTriggered { clip_index: u32 },
-    SpeedLessThan { speed: f32 },
-    SpeedGreaterThan { speed: f32 },
-    NotAlreadyTriggered { clip_index: u32 },
-    MaxPlayCount { count: u32 },
-    RandomOnce { probability: f32 },
-    Random { probablity: f32 },
+    RaceTimeLessThan {
+        /// Race time in seconds >= 0.0.
+        time: f32,
+    },
+    RaceTimeGreaterThan {
+        /// Race time in seconds >= 0.0.
+        time: f32,
+    },
+    /// Will only trigger if the clip with `Some(clip_index)` already triggered. Will never trigger if `None`.
+    AlreadyTriggered {
+        clip_index: Option<u32>,
+    },
+    SpeedLessThan {
+        /// Speed of the car >= 0.0.
+        speed: f32,
+    },
+    SpeedGreaterThan {
+        /// Speed of the car >= 0.0.
+        speed: f32,
+    },
+    /// Will only trigger if the clip with `Some(clip_index)` has not already triggered. Will always trigger if `None`.
+    NotAlreadyTriggered {
+        clip_index: Option<u32>,
+    },
+    /// Will only trigger `Some(count)` times. Will always trigger if `None`.
+    MaxPlayCount {
+        count: Option<u32>,
+    },
+    RandomOnce {
+        /// Propability of triggering between 0.0 and 1.0.
+        probability: f32,
+    },
+    Random {
+        /// Propability of triggering between 0.0 and 1.0.
+        probablity: f32,
+    },
 }
 
 /// A media clip and its trigger conditions.
@@ -182,7 +239,7 @@ pub struct ClipGroup {
 }
 
 impl ClipGroup {
-    pub fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -192,30 +249,55 @@ impl ClipGroup {
         r.u32()?; // 10
         let clips = r.list(|r| r.node_owned(0x03079000, Clip::read))?;
         let triggers = r.list(|r| {
-            r.skip(16)?;
+            r.u32()?;
+            r.u32()?;
+            r.u32()?;
+            r.u32()?;
             let condition = match r.u32()? {
                 0 => {
-                    r.skip(4)?;
+                    r.f32()?;
                     Condition::None
                 }
-                1 => Condition::RaceTimeLessThan { time: r.f32()? },
-                2 => Condition::RaceTimeGreaterThan { time: r.f32()? },
-                3 => Condition::AlreadyTriggered {
-                    clip_index: r.f32()? as u32,
+                1 => Condition::RaceTimeLessThan {
+                    time: r.f32()?.max(0.0),
                 },
-                4 => Condition::SpeedLessThan { speed: r.f32()? },
-                5 => Condition::SpeedGreaterThan { speed: r.f32()? },
-                6 => Condition::NotAlreadyTriggered {
-                    clip_index: r.f32()? as u32,
+                2 => Condition::RaceTimeGreaterThan {
+                    time: r.f32()?.max(0.0),
                 },
-                7 => Condition::MaxPlayCount {
-                    count: r.f32()? as u32,
+                3 => {
+                    let clip_index = r.f32()?.trunc() as i32;
+
+                    Condition::AlreadyTriggered {
+                        clip_index: (clip_index >= 0 && clip_index < clips.len() as i32)
+                            .then_some(clip_index as u32),
+                    }
+                }
+                4 => Condition::SpeedLessThan {
+                    speed: r.f32()?.max(0.0),
                 },
+                5 => Condition::SpeedGreaterThan {
+                    speed: r.f32()?.max(0.0),
+                },
+                6 => {
+                    let clip_index = r.f32()?.trunc() as i32;
+
+                    Condition::NotAlreadyTriggered {
+                        clip_index: (clip_index >= 0 && clip_index < clips.len() as i32)
+                            .then_some(clip_index as u32),
+                    }
+                }
+                7 => {
+                    let count = r.f32()?.trunc() as i32;
+
+                    Condition::MaxPlayCount {
+                        count: (count >= 0).then_some(count as u32),
+                    }
+                }
                 8 => Condition::RandomOnce {
-                    probability: r.f32()?,
+                    probability: r.f32()?.clamp(0.0, 1.0),
                 },
                 9 => Condition::Random {
-                    probablity: r.f32()?,
+                    probablity: r.f32()?.clamp(0.0, 1.0),
                 },
                 _ => panic!(),
             };
