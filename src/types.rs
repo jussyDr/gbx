@@ -1,5 +1,5 @@
 use std::ops::{Add, Deref};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 
 /// A 3-dimensional vector.
@@ -38,41 +38,39 @@ where
     }
 }
 
+/// Reference to an internal file.
+#[derive(Clone, Debug)]
+pub struct InternalFileRef {
+    /// Internal path to the file.
+    pub path: PathBuf,
+}
+
+/// Reference to an external file.
+#[derive(Clone, Debug)]
+pub struct ExternalFileRef {
+    /// Hash of the file.
+    pub hash: [u8; 32],
+    /// Internal path to the file.
+    pub path: PathBuf,
+    /// External URL from where the file can be downloaded.
+    pub locator_url: String,
+}
+
 /// Reference to a file.
 #[derive(Clone, Debug)]
 pub enum FileRef {
     /// Reference to an internal file.
-    Internal {
-        /// Internal path to the file.
-        path: PathBuf,
-    },
+    Internal(InternalFileRef),
     /// Reference to an external file.
-    External {
-        /// Hash of the file.
-        hash: [u8; 32],
-        /// Internal path to the file.
-        path: PathBuf,
-        /// External URL from where the file can be downloaded.
-        locator_url: String,
-    },
+    External(ExternalFileRef),
 }
 
 impl FileRef {
-    /// Returns `true` if the file ref references an internal file.
-    pub const fn is_internal(&self) -> bool {
-        matches!(*self, Self::Internal { .. })
-    }
-
-    /// Returns `true` if the file ref references an external file.
-    pub const fn is_external(&self) -> bool {
-        matches!(*self, Self::External { .. })
-    }
-
-    /// Returns the internal path of the referenced file.
-    pub fn path(&self) -> &Path {
-        match *self {
-            Self::Internal { ref path } => path,
-            Self::External { ref path, .. } => path,
+    /// Converts the file ref to an `InternalFileRef` if internal, else returns `None`.
+    pub fn internal(self) -> Option<InternalFileRef> {
+        match self {
+            FileRef::Internal(internal_file_ref) => Some(internal_file_ref),
+            FileRef::External(_) => None,
         }
     }
 }

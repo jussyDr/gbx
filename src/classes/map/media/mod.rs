@@ -27,16 +27,16 @@ pub enum Block {
     Text(block::Text),
     Trails(block::Trails),
     TransitionFade(block::TransitionFade),
-    DOF(block::DOF),
+    DepthOfField(block::DepthOfField),
     ToneMapping(block::ToneMapping),
     BloomHdr(block::BloomHdr),
     TimeSpeed(block::TimeSpeed),
     Manialink(block::Manialink),
     VehicleLight(block::VehicleLight),
-    Shoot(block::Shoot),
+    EditingCut(block::EditingCut),
     DirtyLens(block::DirtyLens),
     ColorGrading(block::ColorGrading),
-    Interface(block::Interface),
+    ManialinkUI(block::ManialinkUI),
     Fog(block::Fog),
     Entity(block::Entity),
     OpponentVisibility(block::OpponentVisibility),
@@ -113,16 +113,16 @@ impl Clip {
                             0x030A8000 => Block::Text(block::Text::read(r)?),
                             0x030A9000 => Block::Trails(block::Trails::read(r)?),
                             0x030AB000 => Block::TransitionFade(block::TransitionFade::read(r)?),
-                            0x03126000 => Block::DOF(block::DOF::read(r)?),
+                            0x03126000 => Block::DepthOfField(block::DepthOfField::read(r)?),
                             0x03127000 => Block::ToneMapping(block::ToneMapping::read(r)?),
                             0x03128000 => Block::BloomHdr(block::BloomHdr::read(r)?),
                             0x03129000 => Block::TimeSpeed(block::TimeSpeed::read(r)?),
                             0x0312A000 => Block::Manialink(block::Manialink::read(r)?),
                             0x03133000 => Block::VehicleLight(block::VehicleLight::read(r)?),
-                            0x03145000 => Block::Shoot(block::Shoot::read(r)?),
+                            0x03145000 => Block::EditingCut(block::EditingCut::read(r)?),
                             0x03165000 => Block::DirtyLens(block::DirtyLens::read(r)?),
                             0x03186000 => Block::ColorGrading(block::ColorGrading::read(r)?),
-                            0x03195000 => Block::Interface(block::Interface::read(r)?),
+                            0x03195000 => Block::ManialinkUI(block::ManialinkUI::read(r)?),
                             0x03199000 => Block::Fog(block::Fog::read(r)?),
                             0x0329F000 => Block::Entity(block::Entity::read(r)?),
                             0x0338B000 => {
@@ -178,9 +178,10 @@ impl Clip {
 }
 
 /// Condition to trigger a media clip.
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug)]
 #[non_exhaustive]
 pub enum Condition {
+    #[default]
     None,
     RaceTimeLessThan {
         /// Race time in seconds >= 0.0.
@@ -191,9 +192,7 @@ pub enum Condition {
         time: f32,
     },
     /// Will only trigger if the clip with `Some(clip_index)` already triggered. Will never trigger if `None`.
-    AlreadyTriggered {
-        clip_index: Option<u32>,
-    },
+    AlreadyTriggered { clip_index: Option<u32> },
     SpeedLessThan {
         /// Speed of the car >= 0.0.
         speed: f32,
@@ -203,13 +202,9 @@ pub enum Condition {
         speed: f32,
     },
     /// Will only trigger if the clip with `Some(clip_index)` has not already triggered. Will always trigger if `None`.
-    NotAlreadyTriggered {
-        clip_index: Option<u32>,
-    },
+    NotAlreadyTriggered { clip_index: Option<u32> },
     /// Will only trigger `Some(count)` times. Will always trigger if `None`.
-    MaxPlayCount {
-        count: Option<u32>,
-    },
+    MaxPlayCount { count: Option<u32> },
     RandomOnce {
         /// Propability of triggering between 0.0 and 1.0.
         probability: f32,

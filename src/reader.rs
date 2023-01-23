@@ -1,5 +1,5 @@
 use crate::error::{ReadError, ReadResult};
-use crate::types::{FileRef, RcStr};
+use crate::types::{ExternalFileRef, FileRef, InternalFileRef, RcStr};
 use std::any::Any;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek, SeekFrom};
@@ -144,6 +144,18 @@ where
         self.repeat(len as usize, read_fn)
     }
 
+    pub fn optional_internal_file_ref(&mut self) -> ReadResult<Option<InternalFileRef>> {
+        match self.optional_file_ref()? {
+            Some(file_ref) => file_ref
+                .internal()
+                .ok_or(ReadError::Generic(String::from(
+                    "Expected internal file ref",
+                )))
+                .map(Some),
+            None => Ok(None),
+        }
+    }
+
     pub fn optional_file_ref(&mut self) -> ReadResult<Option<FileRef>> {
         if self.u8()? != 3 {
             return Err(ReadError::Generic(String::from("Invalid file ref version")));
@@ -157,13 +169,15 @@ where
             Ok(None)
         } else if hash[0] == 2 && hash[1..].iter().all(|&byte| byte == 0) && locator_url.is_empty()
         {
-            Ok(Some(FileRef::Internal { path: path.into() }))
+            Ok(Some(FileRef::Internal(InternalFileRef {
+                path: path.into(),
+            })))
         } else {
-            Ok(Some(FileRef::External {
+            Ok(Some(FileRef::External(ExternalFileRef {
                 hash,
                 path: path.into(),
                 locator_url,
-            }))
+            })))
         }
     }
 

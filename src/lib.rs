@@ -24,4 +24,4 @@ pub use block::Block;
 pub use classes::{block, ghost, map};
 pub use ghost::Ghost;
 pub use map::Map;
-pub use types::{FileRef, RcStr, Vec3};
+pub use types::{ExternalFileRef, FileRef, InternalFileRef, RcStr, Vec3};

@@ -4,11 +4,11 @@ use crate::reader::{self, Reader};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
-/// Entity record data.
+/// Entity record.
 #[derive(Default)]
-pub struct EntityRecordData;
+pub struct EntityRecord;
 
-impl EntityRecordData {
+impl EntityRecord {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
@@ -90,7 +90,7 @@ impl Ghost {
         r.u32()?;
         r.u32()?;
         r.u32()?;
-        r.node(0x0911F000, EntityRecordData::read)?;
+        r.node(0x0911F000, EntityRecord::read)?;
         r.list(|r| {
             r.u32()?;
 

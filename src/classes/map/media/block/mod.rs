@@ -2,9 +2,10 @@
 pub mod key;
 
 use crate::error::ReadResult;
-use crate::ghost::EntityRecordData;
+use crate::ghost::EntityRecord;
 use crate::reader::{self, Reader};
-use crate::{FileRef, Vec3};
+use crate::{FileRef, InternalFileRef, Vec3};
+use num_enum::TryFromPrimitive;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
@@ -589,35 +590,44 @@ impl TransitionFade {
     }
 }
 
-/// Depth-of-field media block.
+/// Depth of field media block.
 #[derive(Clone)]
-pub struct DOF;
+pub struct DepthOfField {
+    pub keys: Vec<key::DepthOfField>,
+}
 
-impl DOF {
+impl DepthOfField {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
     {
         r.chunk_id(0x03126002)?;
-        let _keys = r.list(|r| {
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
+        let keys = r.list(|r| {
+            let time = r.f32()?;
+            let focus_distance = r.f32()?;
+            let lens_size = r.f32()?;
+            let _target = r.u32()?;
+            let x = r.f32()?;
+            let y = r.f32()?;
+            let z = r.f32()?;
 
-            Ok(())
+            Ok(key::DepthOfField {
+                time,
+                focus_distance,
+                lens_size,
+                target_position: Vec3 { x, y, z },
+            })
         })?;
 
-        Ok(Self)
+        Ok(Self { keys })
     }
 }
 
 /// Tone mapping media block
 #[derive(Clone)]
-pub struct ToneMapping;
+pub struct ToneMapping {
+    pub keys: Vec<key::ToneMapping>,
+}
 
 impl ToneMapping {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -625,17 +635,22 @@ impl ToneMapping {
         R: Read,
     {
         r.chunk_id(0x03127004)?;
-        r.list(|r| {
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
+        let keys = r.list(|r| {
+            let time = r.f32()?;
+            let exposure = r.f32()?;
+            let max_hdr = r.f32()?;
+            let light_trail_scale = r.f32()?;
             r.u32()?;
 
-            Ok(())
+            Ok(key::ToneMapping {
+                time,
+                exposure,
+                max_hdr,
+                light_trail_scale,
+            })
         })?;
 
-        Ok(Self)
+        Ok(Self { keys })
     }
 }
 
@@ -652,7 +667,7 @@ impl BloomHdr {
     {
         r.chunk_id(0x03128002)?;
         let keys = r.list(|r| {
-            r.skip(4)?;
+            r.u32()?;
             let intensity = r.f32()?;
             let streaks_intensity = r.f32()?;
             let streaks_attenuation = r.f32()?;
@@ -670,7 +685,9 @@ impl BloomHdr {
 
 /// Time speed media block.
 #[derive(Clone)]
-pub struct TimeSpeed;
+pub struct TimeSpeed {
+    pub keys: Vec<key::TimeSpeed>,
+}
 
 impl TimeSpeed {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -678,20 +695,24 @@ impl TimeSpeed {
         R: Read,
     {
         r.chunk_id(0x03129000)?;
-        r.list(|r| {
-            r.u32()?;
-            r.u32()?;
+        let keys = r.list(|r| {
+            let time = r.f32()?;
+            let speed = r.f32()?;
 
-            Ok(())
+            Ok(key::TimeSpeed { time, speed })
         })?;
 
-        Ok(Self)
+        Ok(Self { keys })
     }
 }
 
 /// Manialink media block.
 #[derive(Clone)]
-pub struct Manialink;
+pub struct Manialink {
+    pub start_time: f32,
+    pub end_time: f32,
+    pub url: String,
+}
 
 impl Manialink {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -700,17 +721,24 @@ impl Manialink {
     {
         r.chunk_id(0x0312A001)?;
         r.u32()?;
-        r.u32()?;
-        r.u32()?;
-        r.string()?;
+        let start_time = r.f32()?;
+        let end_time = r.f32()?;
+        let url = r.string()?;
 
-        Ok(Self)
+        Ok(Self {
+            start_time,
+            end_time,
+            url,
+        })
     }
 }
 
 /// Vehicle light media block.
-#[derive(Clone)]
-pub struct VehicleLight;
+#[derive(Clone, Debug)]
+pub struct VehicleLight {
+    pub start_time: f32,
+    pub end_time: f32,
+}
 
 impl VehicleLight {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -718,21 +746,24 @@ impl VehicleLight {
         R: Read,
     {
         r.chunk_id(0x03133000)?;
-        r.u32()?;
-        r.u32()?;
+        let start_time = r.f32()?;
+        let end_time = r.f32()?;
 
         r.chunk_id(0x03133001)?;
-        r.u32()?;
+        let _target = r.u32()?;
 
-        Ok(Self)
+        Ok(Self {
+            start_time,
+            end_time,
+        })
     }
 }
 
-/// Shoot media block.
-#[derive(Clone)]
-pub struct Shoot;
+/// Editing cut media block.
+#[derive(Clone, Debug)]
+pub struct EditingCut;
 
-impl Shoot {
+impl EditingCut {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
@@ -747,7 +778,9 @@ impl Shoot {
 
 /// Dirty lens media block.
 #[derive(Clone)]
-pub struct DirtyLens;
+pub struct DirtyLens {
+    pub keys: Vec<key::DirtyLens>,
+}
 
 impl DirtyLens {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -756,20 +789,23 @@ impl DirtyLens {
     {
         r.chunk_id(0x03165000)?;
         r.u32()?;
-        r.list(|r| {
-            r.u32()?;
-            r.u32()?;
+        let keys = r.list(|r| {
+            let time = r.f32()?;
+            let intensity = r.f32()?;
 
-            Ok(())
+            Ok(key::DirtyLens { time, intensity })
         })?;
 
-        Ok(Self)
+        Ok(Self { keys })
     }
 }
 
 /// Color grading media block.
 #[derive(Clone)]
-pub struct ColorGrading;
+pub struct ColorGrading {
+    pub grade: Option<InternalFileRef>,
+    pub keys: Vec<key::ColorGrading>,
+}
 
 impl ColorGrading {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -777,43 +813,53 @@ impl ColorGrading {
         R: Read,
     {
         r.chunk_id(0x03186000)?;
-        r.optional_file_ref()?;
+        let grade = r.optional_internal_file_ref()?;
 
         r.chunk_id(0x03186001)?;
-        r.list(|r| {
-            r.u32()?;
-            r.u32()?;
+        let keys = r.list(|r| {
+            let time = r.f32()?;
+            let intensity = r.f32()?;
 
-            Ok(())
+            Ok(key::ColorGrading { time, intensity })
         })?;
 
-        Ok(Self)
+        Ok(Self { grade, keys })
     }
 }
 
 /// Interface media block.
 #[derive(Clone)]
-pub struct Interface;
+pub struct ManialinkUI {
+    pub start_time: f32,
+    pub end_time: f32,
+    pub manialink: String,
+}
 
-impl Interface {
+impl ManialinkUI {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
     {
         r.chunk_id(0x03195000)?;
         r.u32()?;
+        let start_time = r.f32()?;
+        let end_time = r.f32()?;
         r.u32()?;
-        r.u32()?;
-        r.u32()?;
-        r.string()?;
+        let manialink = r.string()?;
 
-        Ok(Self)
+        Ok(Self {
+            start_time,
+            end_time,
+            manialink,
+        })
     }
 }
 
 /// Fog media block.
 #[derive(Clone)]
-pub struct Fog;
+pub struct Fog {
+    pub keys: Vec<key::Fog>,
+}
 
 impl Fog {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -822,22 +868,34 @@ impl Fog {
     {
         r.chunk_id(0x03199000)?;
         r.u32()?;
-        let _keys = r.list(|r| {
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
-            r.u32()?;
+        let keys = r.list(|r| {
+            let time = r.f32()?;
+            let intensity = r.f32()?;
+            let sky_intensity = r.f32()?;
+            let distance = r.f32()?;
+            r.f32()?;
+            let red = r.f32()?;
+            let green = r.f32()?;
+            let blue = r.f32()?;
+            let cloud_opacity = r.f32()?;
+            let cloud_speed = r.f32()?;
 
-            Ok(())
+            Ok(key::Fog {
+                time,
+                intensity,
+                sky_intensity,
+                distance,
+                color: Vec3 {
+                    x: red,
+                    y: green,
+                    z: blue,
+                },
+                cloud_opacity,
+                cloud_speed,
+            })
         })?;
 
-        Ok(Self)
+        Ok(Self { keys })
     }
 }
 
@@ -854,7 +912,7 @@ impl Entity {
     {
         r.chunk_id(0x0329F000)?;
         let version = r.u32()?;
-        r.node(0x0911F000, EntityRecordData::read)?;
+        r.node(0x0911F000, EntityRecord::read)?;
         r.u32()?; // ?
         r.list(|r| {
             r.u32()?;
@@ -907,9 +965,27 @@ impl Entity {
     }
 }
 
+/// Visibility of a opponent visibility media block.
+#[derive(Clone, Copy, PartialEq, Eq, Default, Debug, TryFromPrimitive)]
+#[non_exhaustive]
+#[repr(u32)]
+pub enum Visibility {
+    #[default]
+    Hidden,
+    Ghost,
+    Opaque,
+}
+
 /// Opponent visibility media block.
-#[derive(Clone)]
-pub struct OpponentVisibility;
+#[derive(Clone, Debug)]
+pub struct OpponentVisibility {
+    /// Start time of the block in seconds.
+    pub start_time: f32,
+    /// End time of the block in seconds.
+    pub end_time: f32,
+    /// Opponent visibility.
+    pub visibility: Visibility,
+}
 
 impl OpponentVisibility {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -917,12 +993,16 @@ impl OpponentVisibility {
         R: Read,
     {
         r.chunk_id(0x0338B000)?;
-        r.u32()?;
-        r.u32()?;
+        let start_time = r.f32()?;
+        let end_time = r.f32()?;
 
         r.chunk_id(0x0338B001)?;
-        r.u32()?;
+        let visibility = Visibility::try_from(r.u32()?).unwrap();
 
-        Ok(Self)
+        Ok(Self {
+            start_time,
+            end_time,
+            visibility,
+        })
     }
 }
