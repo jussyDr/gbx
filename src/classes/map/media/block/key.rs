@@ -1,5 +1,9 @@
 use crate::Vec3;
 
+/// Effect simi key.
+#[derive(Clone, Debug)]
+pub struct EffectSimi;
+
 /// Fx colors media block key.
 #[derive(Clone, Debug)]
 pub struct FxColors;

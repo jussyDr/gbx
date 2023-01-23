@@ -48,7 +48,7 @@ pub struct InternalFileRef {
 /// Reference to an external file.
 #[derive(Clone, Debug)]
 pub struct ExternalFileRef {
-    /// Hash of the file.
+    /// Hash digest of the file.
     pub hash: [u8; 32],
     /// Internal path to the file.
     pub path: PathBuf,
@@ -71,6 +71,14 @@ impl FileRef {
         match self {
             FileRef::Internal(internal_file_ref) => Some(internal_file_ref),
             FileRef::External(_) => None,
+        }
+    }
+
+    /// Converts the file ref to an `ExternalFileRef` if external, else returns `None`.
+    pub fn external(self) -> Option<ExternalFileRef> {
+        match self {
+            FileRef::Internal(_) => None,
+            FileRef::External(external_file_ref) => Some(external_file_ref),
         }
     }
 }

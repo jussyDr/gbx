@@ -206,11 +206,11 @@ pub enum Condition {
     /// Will only trigger `Some(count)` times. Will always trigger if `None`.
     MaxPlayCount { count: Option<u32> },
     RandomOnce {
-        /// Propability of triggering between 0.0 and 1.0.
+        /// Probability of triggering between 0.0 and 1.0.
         probability: f32,
     },
     Random {
-        /// Propability of triggering between 0.0 and 1.0.
+        /// Probability of triggering between 0.0 and 1.0.
         probablity: f32,
     },
 }

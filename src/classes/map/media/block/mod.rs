@@ -9,9 +9,11 @@ use num_enum::TryFromPrimitive;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
-/// Generic media block keys.
+/// Common media block parameters.
 #[derive(Clone)]
-pub struct EffectSimi;
+pub struct EffectSimi {
+    pub keys: Vec<key::EffectSimi>,
+}
 
 impl EffectSimi {
     fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -19,7 +21,7 @@ impl EffectSimi {
         R: Read,
     {
         r.chunk_id(0x07010005)?;
-        let _keys = r.list(|r| {
+        let keys = r.list(|r| {
             r.u32()?;
             r.u32()?;
             r.u32()?;
@@ -33,7 +35,7 @@ impl EffectSimi {
             r.u32()?;
             r.u32()?;
 
-            Ok(())
+            Ok(key::EffectSimi)
         })?;
         r.u32()?;
         r.u32()?;
@@ -42,7 +44,7 @@ impl EffectSimi {
 
         r.node_end()?;
 
-        Ok(Self)
+        Ok(Self { keys })
     }
 }
 
