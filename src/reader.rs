@@ -3,7 +3,7 @@ use crate::types::{ExternalFileRef, FileRef, InternalFileRef, RcStr};
 use crate::Vec3;
 use std::any::Any;
 use std::borrow::BorrowMut;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom, Take};
 use std::iter;
 use std::mem::size_of;
 
@@ -85,6 +85,10 @@ impl<R, I, N> Reader<R, I, N>
 where
     R: Read,
 {
+    pub fn take(&mut self, limit: u64) -> Take<&mut R> {
+        self.inner.borrow_mut().take(limit)
+    }
+
     pub fn bytes(&mut self, n: usize) -> ReadResult<Vec<u8>> {
         let mut buf = vec![0; n];
         self.inner.read_exact(&mut buf)?;

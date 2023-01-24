@@ -939,9 +939,8 @@ impl Map {
         r.u32()?; // 1
         r.u32()?; // 0
         let size = r.u32()?;
-        let bytes = r.bytes(size as usize)?;
         {
-            let mut r = Reader::with_id_state(bytes.as_slice(), reader::IdState::new());
+            let mut r = Reader::with_id_state(r.take(size as u64), reader::IdState::new());
             self.embedded_file_ids = r.list(|r| {
                 let id = r.id()?;
                 r.u32()?; // 26
