@@ -16,6 +16,7 @@ use std::path::Path;
 
 /// Cardinal direction of a block.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum Direction {
     #[default]
@@ -35,6 +36,7 @@ impl Sub for Direction {
 
 /// Color of a block or item.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum Color {
     #[default]
@@ -84,6 +86,7 @@ impl Ord for LightmapQuality {
 
 /// Animation phase offset of a moving item.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum PhaseOffset {
     #[default]
@@ -401,15 +404,6 @@ where
 }
 
 /// Type corresponding to the file extension `Map.Gbx`.
-///
-/// # Examples
-///
-/// ```no_run
-/// # fn main() -> gbx::error::ReadResult<()> {
-/// let map = gbx::Map::read_from_file("MyMap.Map.Gbx")?;
-/// # Ok(())
-/// # }
-/// ```
 #[derive(Default)]
 pub struct Map {
     /// Bronze medal time in milliseconds.
@@ -485,6 +479,15 @@ impl Map {
     }
 
     /// Read a map from a file at the given `path`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # fn main() -> gbx::error::ReadResult<()> {
+    /// let map = gbx::Map::read_from_file("MyMap.Map.Gbx")?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn read_from_file<P>(path: P) -> ReadResult<Self>
     where
         P: AsRef<Path>,

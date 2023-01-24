@@ -36,7 +36,7 @@ pub enum Block {
     EditingCut(block::EditingCut),
     DirtyLens(block::DirtyLens),
     ColorGrading(block::ColorGrading),
-    ManialinkUI(block::ManialinkUI),
+    ManialinkInterface(block::ManialinkInterface),
     Fog(block::Fog),
     Entity(block::Entity),
     OpponentVisibility(block::OpponentVisibility),
@@ -132,7 +132,9 @@ impl Clip {
                             0x03145000 => Block::EditingCut(block::EditingCut::read(r)?),
                             0x03165000 => Block::DirtyLens(block::DirtyLens::read(r)?),
                             0x03186000 => Block::ColorGrading(block::ColorGrading::read(r)?),
-                            0x03195000 => Block::ManialinkUI(block::ManialinkUI::read(r)?),
+                            0x03195000 => {
+                                Block::ManialinkInterface(block::ManialinkInterface::read(r)?)
+                            }
                             0x03199000 => Block::Fog(block::Fog::read(r)?),
                             0x0329F000 => Block::Entity(block::Entity::read(r)?),
                             0x0338B000 => {

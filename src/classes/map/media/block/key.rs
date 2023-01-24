@@ -1,8 +1,9 @@
+use super::Rgb;
 use crate::Vec3;
 
-/// Effect simi key.
+/// Media block effect key.
 #[derive(Clone, Debug)]
-pub struct EffectSimi;
+pub struct Effect;
 
 /// Fx colors media block key.
 #[derive(Clone, Debug)]
@@ -11,6 +12,7 @@ pub struct FxColors;
 /// Time media block key.
 #[derive(Clone, Debug)]
 pub struct Time {
+    /// Time of the key in seconds. [0.0, ∞)
     pub time: f32,
     pub time_value: f32,
     pub tangent: f32,
@@ -44,6 +46,7 @@ pub struct Sound {
 /// Transition fade media block key.
 #[derive(Clone, Debug)]
 pub struct TransitionFade {
+    /// Time of the key in seconds. [0.0, ∞)
     pub time: f32,
     pub opacity: f32,
 }
@@ -51,6 +54,7 @@ pub struct TransitionFade {
 /// Depth of field fade media block key.
 #[derive(Clone, Debug)]
 pub struct DepthOfField {
+    /// Time of the key in seconds. [0.0, ∞)
     pub time: f32,
     pub focus_distance: f32,
     pub lens_size: f32,
@@ -60,6 +64,7 @@ pub struct DepthOfField {
 /// Tone mapping media block key.
 #[derive(Clone, Debug)]
 pub struct ToneMapping {
+    /// Time of the key in seconds. [0.0, ∞)
     pub time: f32,
     pub exposure: f32,
     pub max_hdr: f32,
@@ -77,6 +82,7 @@ pub struct BloomHdr {
 /// Time speed media block key.
 #[derive(Clone, Debug)]
 pub struct TimeSpeed {
+    /// Time of the key in seconds. [0.0, ∞)
     pub time: f32,
     pub speed: f32,
 }
@@ -84,6 +90,7 @@ pub struct TimeSpeed {
 /// Dirty lens media block key.
 #[derive(Clone, Debug)]
 pub struct DirtyLens {
+    /// Time of the key in seconds. [0.0, ∞)
     pub time: f32,
     pub intensity: f32,
 }
@@ -91,6 +98,7 @@ pub struct DirtyLens {
 /// Color grading media block key.
 #[derive(Clone, Debug)]
 pub struct ColorGrading {
+    /// Time of the key in seconds. [0.0, ∞)
     pub time: f32,
     pub intensity: f32,
 }
@@ -98,12 +106,13 @@ pub struct ColorGrading {
 /// Fog media block key.
 #[derive(Clone, Debug)]
 pub struct Fog {
+    /// Time of the key in seconds. [0.0, ∞)
     pub time: f32,
     pub intensity: f32,
     pub sky_intensity: f32,
     pub distance: f32,
-    /// RGB color of the fog.
-    pub color: Vec3<f32>,
+    /// Color of the fog.
+    pub color: Rgb,
     pub cloud_opacity: f32,
     pub cloud_speed: f32,
 }

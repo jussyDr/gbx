@@ -4,18 +4,30 @@ pub mod key;
 use crate::error::ReadResult;
 use crate::ghost::EntityRecord;
 use crate::reader::{self, Reader};
-use crate::{FileRef, InternalFileRef, Vec3};
+use crate::{FileRef, InternalFileRef};
 use num_enum::TryFromPrimitive;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
-/// Common media block parameters.
-#[derive(Clone)]
-pub struct EffectSimi {
-    pub keys: Vec<key::EffectSimi>,
+/// RGB color.
+#[derive(Clone, Debug)]
+pub struct Rgb {
+    /// Red.
+    pub red: f32,
+    /// Green.
+    pub green: f32,
+    /// Blue.
+    pub blue: f32,
 }
 
-impl EffectSimi {
+/// Effect of a media block.
+#[derive(Clone)]
+pub struct Effect {
+    /// Keys of the effect simi.
+    pub keys: Vec<key::Effect>,
+}
+
+impl Effect {
     fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
@@ -35,7 +47,7 @@ impl EffectSimi {
             r.u32()?;
             r.u32()?;
 
-            Ok(key::EffectSimi)
+            Ok(key::Effect)
         })?;
         r.u32()?;
         r.u32()?;
@@ -108,6 +120,7 @@ impl Triangles {
 /// Fx colors media block.
 #[derive(Clone)]
 pub struct FxColors {
+    /// Keys of the media block.
     pub keys: Vec<key::FxColors>,
 }
 
@@ -211,6 +224,7 @@ impl CameraGame {
 /// Time media block.
 #[derive(Clone)]
 pub struct Time {
+    /// Keys of the media block.
     pub keys: Vec<key::Time>,
 }
 
@@ -318,6 +332,7 @@ impl CameraPath {
 /// Camera custom media block.
 #[derive(Clone)]
 pub struct CameraCustom {
+    /// Keys of the media block.
     pub keys: Vec<key::CameraCustom>,
 }
 
@@ -379,6 +394,7 @@ impl CameraCustom {
 /// Camera shake effect media block.
 #[derive(Clone)]
 pub struct CameraShakeEffect {
+    /// Keys of the media block.
     pub keys: Vec<key::CameraShakeEffect>,
 }
 
@@ -403,7 +419,9 @@ impl CameraShakeEffect {
 /// Image media block.
 #[derive(Clone)]
 pub struct Image {
-    pub effect: EffectSimi,
+    /// Effect of the image.
+    pub effect: Effect,
+    /// Optional reference to the image file.
     pub image: Option<FileRef>,
 }
 
@@ -414,7 +432,7 @@ impl Image {
         N: BorrowMut<reader::NodeState>,
     {
         r.chunk_id(0x030A5000)?;
-        let effect = r.node_owned(0x07010000, EffectSimi::read)?;
+        let effect = r.node_owned(0x07010000, Effect::read)?;
         let image = r.optional_file_ref()?;
 
         Ok(Self { effect, image })
@@ -424,6 +442,7 @@ impl Image {
 /// Music effect media block.
 #[derive(Clone)]
 pub struct MusicEffect {
+    /// Keys of the media block.
     pub keys: Vec<key::MusicEffect>,
 }
 
@@ -455,6 +474,7 @@ pub struct Sound {
     pub is_looping: bool,
     pub is_music: bool,
     pub sound: Option<FileRef>,
+    /// Keys of the media block.
     pub keys: Vec<key::Sound>,
 }
 
@@ -497,9 +517,12 @@ impl Sound {
 /// Text media block.
 #[derive(Clone)]
 pub struct Text {
+    /// The text.
     pub text: String,
-    pub effect: EffectSimi,
-    pub color: Vec3<f32>,
+    /// Effect of the text.
+    pub effect: Effect,
+    /// Color of the text.
+    pub color: Rgb,
 }
 
 impl Text {
@@ -510,15 +533,17 @@ impl Text {
     {
         r.chunk_id(0x030A8001)?;
         let text = r.string()?;
-        let effect = r.node_owned(0x07010000, EffectSimi::read)?;
+        let effect = r.node_owned(0x07010000, Effect::read)?;
 
         r.chunk_id(0x030A8002)?;
-        let color = r.vec3f32()?;
+        let red = r.f32()?;
+        let green = r.f32()?;
+        let blue = r.f32()?;
 
         Ok(Self {
             effect,
             text,
-            color,
+            color: Rgb { red, green, blue },
         })
     }
 }
@@ -526,7 +551,9 @@ impl Text {
 /// Trails media block.
 #[derive(Clone)]
 pub struct Trails {
+    /// Start time of the block in seconds. [0.0, ∞)
     pub start_time: f32,
+    /// End time of the block in seconds. [0.0, ∞)
     pub end_time: f32,
 }
 
@@ -549,8 +576,10 @@ impl Trails {
 /// Transition fade media block.
 #[derive(Clone)]
 pub struct TransitionFade {
+    /// Keys of the media block.
     pub keys: Vec<key::TransitionFade>,
-    pub color: Vec3<f32>,
+    /// Color of the fade.
+    pub color: Rgb,
 }
 
 impl TransitionFade {
@@ -565,16 +594,22 @@ impl TransitionFade {
 
             Ok(key::TransitionFade { time, opacity })
         })?;
-        let color = r.vec3f32()?;
+        let red = r.f32()?;
+        let green = r.f32()?;
+        let blue = r.f32()?;
         r.u32()?;
 
-        Ok(Self { keys, color })
+        Ok(Self {
+            keys,
+            color: Rgb { red, green, blue },
+        })
     }
 }
 
 /// Depth of field media block.
 #[derive(Clone)]
 pub struct DepthOfField {
+    /// Keys of the media block.
     pub keys: Vec<key::DepthOfField>,
 }
 
@@ -606,6 +641,7 @@ impl DepthOfField {
 /// Tone mapping media block
 #[derive(Clone)]
 pub struct ToneMapping {
+    /// Keys of the media block.
     pub keys: Vec<key::ToneMapping>,
 }
 
@@ -637,6 +673,7 @@ impl ToneMapping {
 /// Bloom high dynamic range media block.
 #[derive(Clone)]
 pub struct BloomHdr {
+    /// Keys of the media block.
     pub keys: Vec<key::BloomHdr>,
 }
 
@@ -666,6 +703,7 @@ impl BloomHdr {
 /// Time speed media block.
 #[derive(Clone)]
 pub struct TimeSpeed {
+    /// Keys of the media block.
     pub keys: Vec<key::TimeSpeed>,
 }
 
@@ -689,8 +727,11 @@ impl TimeSpeed {
 /// Manialink media block.
 #[derive(Clone)]
 pub struct Manialink {
+    /// Start time of the block in seconds. [0.0, ∞)
     pub start_time: f32,
+    /// End time of the block in seconds. [0.0, ∞)
     pub end_time: f32,
+    /// URL to the manialink.
     pub url: String,
 }
 
@@ -716,7 +757,9 @@ impl Manialink {
 /// Vehicle light media block.
 #[derive(Clone, Debug)]
 pub struct VehicleLight {
+    /// Start time of the block in seconds. [0.0, ∞)
     pub start_time: f32,
+    /// End time of the block in seconds. [0.0, ∞)
     pub end_time: f32,
 }
 
@@ -759,6 +802,7 @@ impl EditingCut {
 /// Dirty lens media block.
 #[derive(Clone)]
 pub struct DirtyLens {
+    /// Keys of the media block.
     pub keys: Vec<key::DirtyLens>,
 }
 
@@ -783,7 +827,9 @@ impl DirtyLens {
 /// Color grading media block.
 #[derive(Clone)]
 pub struct ColorGrading {
+    /// Optional reference to the grade image file.
     pub grade: Option<InternalFileRef>,
+    /// Keys of the media block.
     pub keys: Vec<key::ColorGrading>,
 }
 
@@ -807,15 +853,18 @@ impl ColorGrading {
     }
 }
 
-/// Interface media block.
+/// Manialink inferface media block.
 #[derive(Clone)]
-pub struct ManialinkUI {
+pub struct ManialinkInterface {
+    /// Start time of the block in seconds. [0.0, ∞)
     pub start_time: f32,
+    /// End time of the block in seconds. [0.0, ∞)
     pub end_time: f32,
+    /// The manialink interface.
     pub manialink: String,
 }
 
-impl ManialinkUI {
+impl ManialinkInterface {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
@@ -838,6 +887,7 @@ impl ManialinkUI {
 /// Fog media block.
 #[derive(Clone)]
 pub struct Fog {
+    /// Keys of the media block.
     pub keys: Vec<key::Fog>,
 }
 
@@ -854,7 +904,9 @@ impl Fog {
             let sky_intensity = r.f32()?;
             let distance = r.f32()?;
             r.f32()?;
-            let color = r.vec3f32()?;
+            let red = r.f32()?;
+            let green = r.f32()?;
+            let blue = r.f32()?;
             let cloud_opacity = r.f32()?;
             let cloud_speed = r.f32()?;
 
@@ -863,7 +915,7 @@ impl Fog {
                 intensity,
                 sky_intensity,
                 distance,
-                color,
+                color: Rgb { red, green, blue },
                 cloud_opacity,
                 cloud_speed,
             })
@@ -953,9 +1005,9 @@ pub enum Visibility {
 /// Opponent visibility media block.
 #[derive(Clone, Debug)]
 pub struct OpponentVisibility {
-    /// Start time of the block in seconds.
+    /// Start time of the block in seconds. [0.0, ∞)
     pub start_time: f32,
-    /// End time of the block in seconds.
+    /// End time of the block in seconds. [0.0, ∞)
     pub end_time: f32,
     /// Opponent visibility.
     pub visibility: Visibility,

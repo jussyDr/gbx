@@ -8,15 +8,6 @@ use std::io::{BufReader, Read, Seek};
 use std::path::Path;
 
 /// Type corresponding to the file extension `Block.Gbx`.
-///
-/// # Examples
-///
-/// ```no_run
-/// # fn main() -> gbx::error::ReadResult<()> {
-/// let block = gbx::Block::read_from_file("MyBlock.Block.Gbx")?;
-/// # Ok(())
-/// # }
-/// ```
 #[derive(Default)]
 pub struct Block {
     /// Id of the block info archetype.
@@ -35,6 +26,15 @@ impl Block {
     }
 
     /// Read a block from a file at the given `path`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # fn main() -> gbx::error::ReadResult<()> {
+    /// let block = gbx::Block::read_from_file("MyBlock.Block.Gbx")?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn read_from_file<P>(path: P) -> ReadResult<Self>
     where
         P: AsRef<Path>,
