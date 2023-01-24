@@ -105,7 +105,9 @@ macro_rules! test_read_item {
 test_read_item!(5933, "vvSSNoLARSsF0XkoVuOtjUs6qu2-JGPel84zKUA6pVQ");
 test_read_item!(21172, "iaLvppeLVEDLEo8XRAz2kORTE6aBTRACHyM0JESqc3s");
 test_read_item!(26427, "-56XYR9Zubtctt_EBzKJ-NCrERE-JVeSGetzPH0URNY");
+test_read_item!(42887, "-grSbU1L361FVqv0U03cARSNmUH5KnSgFLEvg1zTMGM");
 test_read_item!(44357, "1KCsxGkqUe0AqfNUEM1BCBAKE_MaQZjeDHZ9olZJthM");
+test_read_item!(45331, "nBM1Y3OlRxlH5kvfTALN0zZXNenGElSlOLB82RX2g_s");
 
 fn test_read_map(map_id: u32, hash: &str) {
     let url = format!("https://trackmania.exchange/maps/download/{map_id}");

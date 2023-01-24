@@ -512,17 +512,16 @@ impl ItemModel {
                 r.u32()?;
                 r.node(0x090BB000, |r| {
                     r.chunk_id(0x090BB000)?;
+                    let version = r.u32()?;
                     r.u32()?;
-                    r.u32()?;
-                    r.u32()?;
-                    r.u32()?;
-                    r.u32()?;
-                    r.u32()?;
-                    r.u32()?;
-                    r.u32()?;
-                    r.u32()?;
-                    r.u32()?;
-                    r.u32()?;
+                    r.list(|r| {
+                        r.u32()?;
+                        r.u32()?;
+                        r.u32()?;
+                        r.u32()?;
+
+                        Ok(())
+                    })?;
                     r.u32()?;
                     r.list(|r| {
                         r.node(0x0901E000, |r| {
@@ -694,7 +693,9 @@ impl ItemModel {
                     r.u32()?;
                     r.u32()?;
                     r.string()?; // "*.Item.xml"
-                    r.u32()?;
+                    if version >= 30 {
+                        r.u32()?;
+                    }
                     r.repeat(num_materials as usize, |r| {
                         r.u32()?;
                         r.node(0x090FD000, Material::read)?;

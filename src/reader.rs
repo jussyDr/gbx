@@ -182,7 +182,7 @@ where
             Some(file_ref) => file_ref
                 .internal()
                 .ok_or(ReadError::Generic(String::from(
-                    "Expected internal file ref",
+                    "expected internal file ref",
                 )))
                 .map(Some),
             None => Ok(None),
@@ -191,7 +191,7 @@ where
 
     pub fn optional_file_ref(&mut self) -> ReadResult<Option<FileRef>> {
         if self.u8()? != 3 {
-            return Err(ReadError::Generic(String::from("Invalid file ref version")));
+            return Err(ReadError::Generic(String::from("invalid file ref version")));
         }
 
         let hash = self.bytes_array()?;
