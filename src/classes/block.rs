@@ -1,6 +1,6 @@
-use super::{Crystal, ItemModel};
 use crate::error::{ReadError, ReadResult};
 use crate::gbx::{self, ReadBody, ReadChunk};
+use crate::model::{Crystal, ItemModel, Model};
 use crate::reader::{self, Reader};
 use crate::RcStr;
 use std::borrow::BorrowMut;
@@ -13,6 +13,8 @@ use std::path::Path;
 pub struct Block {
     /// Id of the block info archetype.
     pub archetype: RcStr,
+    /// Variant models of the block.
+    pub variants: Vec<Model>,
 }
 
 impl Block {
@@ -68,11 +70,11 @@ impl Block {
         r.u32()?;
         self.archetype = r.id()?;
         r.u32()?;
-        r.list(|r| {
+        self.variants = r.list(|r| {
             r.u32()?;
-            r.node(0x09003000, Crystal::read)?;
+            let variant = r.node_owned(0x09003000, Crystal::read)?.0;
 
-            Ok(())
+            Ok(variant)
         })?;
 
         Ok(())

@@ -1,7 +1,7 @@
-use super::ItemModel;
-use crate::classes::item_model::Crystal;
+use crate::classes::model::Crystal;
 use crate::error::{ReadError, ReadResult};
 use crate::gbx::{ReadBody, ReadChunk};
+use crate::model::{ItemModel, Model};
 use crate::reader::Reader;
 use crate::{gbx, reader};
 use std::borrow::BorrowMut;
@@ -11,7 +11,10 @@ use std::path::Path;
 
 /// Type corresponding to the file extension `Item.Gbx`.
 #[derive(Clone, Default)]
-pub struct Item;
+pub struct Item {
+    /// Model of the item.
+    pub model: Model,
+}
 
 impl Item {
     /// Read a item from the given `reader`.
@@ -67,7 +70,7 @@ impl Item {
     {
         r.u32()?;
         r.u32()?;
-        r.node(0x09003000, Crystal::read)?;
+        self.model = r.node_owned(0x09003000, Crystal::read)?.0;
         r.u32()?;
         r.u32()?;
         r.u32()?;

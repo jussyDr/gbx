@@ -1,19 +1,14 @@
-/// Types for `Block`.
-pub mod block;
-
-/// Types for `Item`.
-pub mod item;
-
 use crate::error::ReadResult;
 use crate::gbx::{self, Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader};
 use crate::reader::{self, Reader};
-use block::Block;
-use item::Item;
+use crate::{Block, Item};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
+use std::ops::{Deref, DerefMut};
 
+/// Material of a model.
 #[derive(Clone, Default)]
-struct Material;
+pub struct Material;
 
 impl Material {
     fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -100,13 +95,18 @@ where
     }
 }
 
-#[derive(Default)]
-struct Crystal {
+/// Model.
+#[derive(Clone, Default)]
+pub struct Model {
+    /// Materials used in the model.
     pub materials: Vec<Material>,
 }
 
+#[derive(Clone, Default)]
+pub(crate) struct Crystal(pub Model);
+
 impl Crystal {
-    fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -271,6 +271,20 @@ impl Crystal {
     }
 }
 
+impl Deref for Crystal {
+    type Target = Model;
+
+    fn deref(&self) -> &Model {
+        &self.0
+    }
+}
+
+impl DerefMut for Crystal {
+    fn deref_mut(&mut self) -> &mut Model {
+        &mut self.0
+    }
+}
+
 impl<R, I, N> ReadBody<R, I, N> for Crystal
 where
     R: Read + Seek,
@@ -290,7 +304,7 @@ where
 }
 
 #[derive(Clone)]
-enum ItemModel {
+pub(crate) enum ItemModel {
     Block(Block),
     Item(Item),
 }
@@ -508,9 +522,9 @@ impl ItemModel {
         if let Some(item_model) = r.optional_node_owned(0x2E027000, |r| {
             r.chunk_id(0x2E027000)?;
             r.u32()?;
-            r.node(0x09159000, |r| {
+            let model = r.node_owned(0x09159000, |r| {
                 r.u32()?;
-                r.node(0x090BB000, |r| {
+                let model = r.node_owned(0x090BB000, |r| {
                     r.chunk_id(0x090BB000)?;
                     let version = r.u32()?;
                     r.u32()?;
@@ -696,11 +710,9 @@ impl ItemModel {
                     if version >= 30 {
                         r.u32()?;
                     }
-                    r.repeat(num_materials as usize, |r| {
+                    let materials = r.repeat(num_materials as usize, |r| {
                         r.u32()?;
-                        r.node(0x090FD000, Material::read)?;
-
-                        Ok(())
+                        r.node_owned(0x090FD000, Material::read)
                     })?;
                     r.u32()?;
                     r.u32()?;
@@ -716,7 +728,7 @@ impl ItemModel {
 
                     r.node_end()?;
 
-                    Ok(())
+                    Ok(Model { materials })
                 })?;
                 r.u8()?;
                 r.u32()?;
@@ -756,11 +768,11 @@ impl ItemModel {
 
                 r.node_end()?;
 
-                Ok(())
+                Ok(model)
             })?;
             r.u32()?;
 
-            Ok(ItemModel::Item(Item::default()))
+            Ok(ItemModel::Item(Item { model }))
         })? {
             *self = item_model;
         }
