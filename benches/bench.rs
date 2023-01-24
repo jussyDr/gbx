@@ -72,9 +72,9 @@ fn bench(c: &mut Criterion) {
         })
     });
 
-    let map_id = 31080;
+    let map_id = 46951;
     let url = format!("https://trackmania.exchange/maps/download/{map_id}");
-    let mut file = fetch_file(&url, "QkvIruZgolwog5meQDgd3xqFEuZmLXWXG_n68YjPh5M").unwrap();
+    let mut file = fetch_file(&url, "RZY3fk02zYm2UrTSQx3xdl1omZ7GC1c5rY4CzD5WvXs").unwrap();
     let mut buf = vec![];
     file.read_to_end(&mut buf).unwrap();
 

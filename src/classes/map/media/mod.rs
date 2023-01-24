@@ -42,20 +42,23 @@ pub enum Block {
     OpponentVisibility(block::OpponentVisibility),
 }
 
+/// Segment of a media track.
 #[derive(Clone)]
 pub struct TrackSegment {
-    pub start: f32,
-    pub end: f32,
+    /// Start time of the segment. [0, ∞)
+    pub start_time: f32,
+    /// End time of the segment. [0, ∞)
+    pub end_time: f32,
 }
 
 /// A media track.
 #[derive(Clone)]
 pub struct Track {
-    /// All blocks of this track.
+    /// All blocks of the track.
     pub blocks: Vec<Block>,
-    /// Whether the last block of the track should remain active after the end time.
+    /// `true` if the last block of the track should remain active after its end time.
     pub keep_last_block_active: bool,
-    /// Track segment which should be repeated after the end time.
+    /// Track segment which should be repeated after the last block.
     pub repeat_track_segment: Option<TrackSegment>,
 }
 
@@ -72,15 +75,15 @@ impl Default for Track {
 /// A media clip.
 #[derive(Clone)]
 pub struct Clip {
-    /// All tracks of this clip.
+    /// All tracks of the clip.
     pub tracks: Vec<Track>,
     /// Name of the clip.
     pub name: String,
-    /// Stop the clip when the player leaves the trigger.
+    /// Stop the clip when the player leaves the trigger coords.
     pub stop_on_leave: bool,
     /// Stop the clip when the player respawns.
     pub stop_on_respawn: bool,
-    /// `true` if the clip can trigger before the start the a race.
+    /// `true` if the clip can trigger before the start of a race.
     pub can_trigger_before_start: bool,
 }
 
@@ -155,16 +158,18 @@ impl Clip {
                 let keep_last_block_active = r.bool()?;
                 r.u32()?;
                 let repeat_track_segment = r.bool()?;
-                let start = r.f32()?;
-                let end = r.f32()?;
+                let start_time = r.f32()?;
+                let end_time = r.f32()?;
 
                 r.node_end()?;
 
                 Ok(Track {
                     blocks,
                     keep_last_block_active,
-                    repeat_track_segment: repeat_track_segment
-                        .then_some(TrackSegment { start, end }),
+                    repeat_track_segment: repeat_track_segment.then_some(TrackSegment {
+                        start_time,
+                        end_time,
+                    }),
                 })
             })
         })?;
@@ -208,21 +213,21 @@ pub enum Condition {
     #[default]
     None,
     RaceTimeLessThan {
-        /// Race time in seconds >= 0.0.
+        /// Race time in seconds. [0.0, ∞)
         time: f32,
     },
     RaceTimeGreaterThan {
-        /// Race time in seconds >= 0.0.
+        /// Race time in seconds. [0.0, ∞)
         time: f32,
     },
     /// Will only trigger if the clip with `Some(clip_index)` already triggered. Will never trigger if `None`.
     AlreadyTriggered { clip_index: Option<u32> },
     SpeedLessThan {
-        /// Speed of the car >= 0.0.
+        /// Speed of the car. [0.0, ∞)
         speed: f32,
     },
     SpeedGreaterThan {
-        /// Speed of the car >= 0.0.
+        /// Speed of the car. [0.0, ∞)
         speed: f32,
     },
     /// Will only trigger if the clip with `Some(clip_index)` has not already triggered. Will always trigger if `None`.
@@ -230,11 +235,11 @@ pub enum Condition {
     /// Will only trigger `Some(count)` times. Will always trigger if `None`.
     MaxPlayCount { count: Option<u32> },
     RandomOnce {
-        /// Probability of triggering between 0.0 and 1.0.
+        /// Probability of triggering. [0.0, 1.0]
         probability: f32,
     },
     Random {
-        /// Probability of triggering between 0.0 and 1.0.
+        /// Probability of triggering. [0.0, 1.0]
         probablity: f32,
     },
 }
