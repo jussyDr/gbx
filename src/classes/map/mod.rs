@@ -263,7 +263,7 @@ pub struct Block {
     /// `true` if the block is a ground block variant.
     pub is_ground: bool,
     /// Skin of the block, e.g. for signs.
-    pub skin: Option<Skin>,
+    pub skin: Option<Box<Skin>>,
     /// Waypoint property.
     pub waypoint_property: Option<WaypointProperty>,
     /// Variant index of the block.
@@ -282,7 +282,7 @@ pub struct FreeBlock {
     /// Id of the block's model.
     pub model_id: RcStr,
     /// Skin of the block, e.g. for signs.
-    pub skin: Option<Skin>,
+    pub skin: Option<Box<Skin>>,
     /// Waypoint property.
     pub waypoint_property: Option<WaypointProperty>,
     /// Absolute position of the block.
@@ -730,7 +730,7 @@ impl Map {
 
             let skin = if flags & 0x00008000 != 0 {
                 let _author = r.id()?; // "dsTdptYAS06hYsbqyCZi1A"
-                r.optional_node_owned(0x03059000, Skin::read)?
+                r.optional_node_owned(0x03059000, Skin::read)?.map(Box::new)
             } else {
                 None
             };
