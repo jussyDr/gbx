@@ -23,7 +23,7 @@ pub struct Rgb {
 /// Effect of a media block.
 #[derive(Clone)]
 pub struct Effect {
-    /// Keys of the effect simi.
+    /// Keys of the effect.
     pub keys: Vec<key::Effect>,
 }
 

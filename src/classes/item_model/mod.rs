@@ -1,49 +1,205 @@
+/// Types for `Block`.
+pub mod block;
+
+/// Types for `Item`.
+pub mod item;
+
 use crate::error::ReadResult;
 use crate::gbx::{self, Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader};
 use crate::reader::{self, Reader};
-use crate::RcStr;
+use block::Block;
+use item::Item;
 use std::borrow::BorrowMut;
-use std::fs::File;
-use std::io::{BufReader, Read, Seek};
-use std::path::Path;
+use std::io::{Read, Seek};
 
-/// Type corresponding to the file extension `Block.Gbx`.
 #[derive(Default)]
-pub struct Block {
-    /// Id of the block info archetype.
-    pub archetype: RcStr,
+struct Crystal {
+    pub materials: Vec<()>,
 }
 
-impl Block {
-    /// Read a block from the given `reader`.
-    ///
-    /// For performance reasons, it is recommended that the `reader` is buffered.
-    pub fn read_from<R>(reader: R) -> ReadResult<Self>
+impl Crystal {
+    fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    where
+        R: Read + Seek,
+        I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
+    {
+        let mut crystal = Self::default();
+        gbx::read_body(&mut crystal, r)?;
+        Ok(crystal)
+    }
+
+    fn read_chunk_09051000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
-        gbx::read(reader)
+        r.u32()?;
+
+        Ok(())
     }
 
-    /// Read a block from a file at the given `path`.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # fn main() -> gbx::error::ReadResult<()> {
-    /// let block = gbx::Block::read_from_file("MyBlock.Block.Gbx")?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn read_from_file<P>(path: P) -> ReadResult<Self>
+    fn read_chunk_09003003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
-        P: AsRef<Path>,
+        R: Read,
+        I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
     {
-        let file = File::open(path).unwrap();
-        let reader = BufReader::new(file);
-        Self::read_from(reader)
+        r.u32()?;
+        self.materials = r.list(|r| {
+            r.u32()?;
+            r.node(0x090FD000, |r| {
+                r.chunk_id(0x090FD000)?;
+                let version = r.u32()?;
+                if version >= 11 {
+                    r.u8()?;
+                }
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u8()?;
+                r.u8()?;
+                let _name = r.string()?;
+                r.list(|r| {
+                    r.id()?;
+                    r.id()?;
+                    r.u32()?;
+
+                    Ok(())
+                })?;
+                r.list(|r| r.u32())?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+
+                r.chunk_id(0x090FD001)?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+
+                r.chunk_id(0x090FD002)?;
+                r.u32()?;
+                r.u32()?;
+
+                Ok(())
+            })?;
+
+            r.node_end()?;
+
+            Ok(())
+        })?;
+
+        Ok(())
     }
 
+    fn read_chunk_09003005<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    where
+        R: Read,
+        I: BorrowMut<reader::IdState>,
+    {
+        r.u32()?;
+        let _layers = r.list(|r| {
+            let layer_type = r.u32()?;
+            r.u32()?;
+            r.u32()?;
+            r.id()?;
+            let _name = r.string()?;
+            let _is_enabled = r.bool()?;
+            r.u32()?;
+
+            match layer_type {
+                0 => {
+                    read_mesh(r, self.materials.len() as u32)?;
+                    r.list(|r| r.u32())?;
+                    r.u32()?;
+                    r.u32()?;
+                }
+                14 => {
+                    read_mesh(r, self.materials.len() as u32)?;
+                    r.list(|r| r.u32())?;
+                }
+                _ => panic!("{}", layer_type),
+            }
+
+            Ok(())
+        })?;
+
+        Ok(())
+    }
+
+    fn read_chunk_09003006<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    where
+        R: Read,
+    {
+        let version = r.u32()?;
+        if version >= 1 {
+            r.list(|r| {
+                r.i16()?;
+                r.i16()?;
+
+                Ok(())
+            })?;
+            if version >= 2 {
+                let num = r.u32()?;
+                r.repeat(num as usize, |r| {
+                    r.packed_index(num)?;
+
+                    Ok(())
+                })?;
+            }
+        } else {
+            r.list(|r| {
+                r.f32()?;
+                r.f32()?;
+
+                Ok(())
+            })?;
+        }
+
+        Ok(())
+    }
+
+    fn read_chunk_09003007<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    where
+        R: Read,
+    {
+        r.u32()?;
+        r.list(|r| r.f32())?;
+        r.list(|r| r.u32())?;
+
+        Ok(())
+    }
+}
+
+impl<R, I, N> ReadBody<R, I, N> for Crystal
+where
+    R: Read,
+    I: BorrowMut<reader::IdState>,
+    N: BorrowMut<reader::NodeState>,
+{
+    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
+        &[
+            (0x09051000, ReadChunk::Read(Self::read_chunk_09051000)),
+            (0x09003003, ReadChunk::Read(Self::read_chunk_09003003)),
+            (0x09003004, ReadChunk::Skip),
+            (0x09003005, ReadChunk::Read(Self::read_chunk_09003005)),
+            (0x09003006, ReadChunk::Read(Self::read_chunk_09003006)),
+            (0x09003007, ReadChunk::Read(Self::read_chunk_09003007)),
+        ]
+    }
+}
+
+#[derive(Clone)]
+enum ItemModel {
+    Block(Block),
+    Item(Item),
+}
+
+impl ItemModel {
     fn read_chunk_2e001003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
@@ -242,143 +398,14 @@ impl Block {
         r.u32()?;
         r.u32()?;
         r.u32()?;
-        r.node(0x2E025000, |r| {
-            r.chunk_id(0x2E025000)?;
-            r.u32()?;
-            self.archetype = r.id()?;
-            r.u32()?;
-            r.list(|r| {
-                r.u32()?;
-                r.node(0x09003000, |r| {
-                    r.chunk_id(0x09051000)?;
-                    r.u32()?;
+        *self = r.any_node_owned(|r, class_id| {
+            let item_model = match class_id {
+                0x2E025000 => ItemModel::Block(Block::read(r)?),
+                0x2E026000 => ItemModel::Item(Item::read(r)?),
+                _ => panic!(),
+            };
 
-                    r.chunk_id(0x09003003)?;
-                    r.u32()?;
-                    let materials = r.list(|r| {
-                        r.u32()?;
-                        r.node(0x090FD000, |r| {
-                            r.chunk_id(0x090FD000)?;
-                            let version = r.u32()?;
-                            if version >= 11 {
-                                r.u8()?;
-                            }
-                            r.u32()?;
-                            r.u32()?;
-                            r.u32()?;
-                            r.u8()?;
-                            r.u8()?;
-                            let _name = r.string()?;
-                            r.list(|r| {
-                                r.id()?;
-                                r.id()?;
-                                r.u32()?;
-
-                                Ok(())
-                            })?;
-                            r.list(|r| r.u32())?;
-                            r.u32()?;
-                            r.u32()?;
-                            r.u32()?;
-                            r.u32()?;
-
-                            r.chunk_id(0x090FD001)?;
-                            r.u32()?;
-                            r.u32()?;
-                            r.u32()?;
-                            r.u32()?;
-                            r.u32()?;
-                            r.u32()?;
-                            r.u32()?;
-
-                            r.chunk_id(0x090FD002)?;
-                            r.u32()?;
-                            r.u32()?;
-
-                            Ok(())
-                        })?;
-
-                        r.node_end()?;
-
-                        Ok(())
-                    })?;
-
-                    r.skip_chunk(0x09003004)?;
-
-                    r.chunk_id(0x09003005)?;
-                    r.u32()?;
-                    let _layers = r.list(|r| {
-                        let layer_type = r.u32()?;
-                        r.u32()?;
-                        r.u32()?;
-                        r.id()?;
-                        let _name = r.string()?;
-                        let _is_enabled = r.bool()?;
-                        r.u32()?;
-
-                        match layer_type {
-                            0 => {
-                                read_mesh(r, materials.len() as u32)?;
-                                r.list(|r| r.u32())?;
-                                r.u32()?;
-                                r.u32()?;
-                            }
-                            14 => {
-                                read_mesh(r, materials.len() as u32)?;
-                                r.list(|r| r.u32())?;
-                            }
-                            _ => panic!("{}", layer_type),
-                        }
-
-                        Ok(())
-                    })?;
-
-                    r.chunk_id(0x09003006)?;
-                    let version = r.u32()?;
-                    if version >= 1 {
-                        r.list(|r| {
-                            r.i16()?;
-                            r.i16()?;
-
-                            Ok(())
-                        })?;
-                        if version >= 2 {
-                            let num = r.u32()?;
-                            r.repeat(num as usize, |r| {
-                                r.packed_index(num)?;
-
-                                Ok(())
-                            })?;
-                        }
-                    } else {
-                        r.list(|r| {
-                            r.f32()?;
-                            r.f32()?;
-
-                            Ok(())
-                        })?;
-                    }
-
-                    r.chunk_id(0x09003007)?;
-                    r.u32()?;
-                    r.list(|r| r.f32())?;
-                    r.list(|r| r.u32())?;
-
-                    Ok(())
-                })?;
-
-                r.node_end()?;
-
-                Ok(())
-            })?;
-
-            r.skip_optional_chunk(0x2E025001)?;
-            r.skip_chunk(0x2E025002)?;
-            r.skip_chunk(0x2E025003)?;
-
-            r.node_end()?;
-
-            Ok(())
+            Ok(item_model)
         })?;
         r.u32()?;
         if version >= 15 {
@@ -478,11 +505,17 @@ impl Block {
     }
 }
 
-impl Class for Block {
+impl Default for ItemModel {
+    fn default() -> Self {
+        Self::Block(Block::default())
+    }
+}
+
+impl Class for ItemModel {
     const CLASS_ID: u32 = 0x2E002000;
 }
 
-impl<R, I, N> ReadHeader<R, I, N> for Block
+impl<R, I, N> ReadHeader<R, I, N> for ItemModel
 where
     R: Read,
     I: BorrowMut<reader::IdState>,
@@ -498,7 +531,7 @@ where
     }
 }
 
-impl<R, I, N> ReadBody<R, I, N> for Block
+impl<R, I, N> ReadBody<R, I, N> for ItemModel
 where
     R: Read + Seek,
     I: BorrowMut<reader::IdState>,

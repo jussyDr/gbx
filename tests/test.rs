@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use base64::Engine;
-use gbx::{Block, Map};
+use gbx::{Block, Item, Map};
 use paste::paste;
 use sha2::{Digest, Sha256};
 use std::fs::{File, OpenOptions};
@@ -66,6 +66,27 @@ test_read_block!(5899, "Of3Y0ecMmelzrYhrqseEjkq16yvUXsPTS5WZGS_5Bdc");
 test_read_block!(19019, "OLMBYCB4V32uQKAP39qdV8pEY8j1Mmd36cYfzoZWQIs");
 test_read_block!(43839, "DquHIX6wG-cgI_x68oqH81sdhAZCC7IX9YJ_4qlA6Gw");
 test_read_block!(44867, "U6JKwKAv62gS_KLHuJpaSc0Ri5mHvbitGodiceC-5qI");
+
+fn test_read_item(item_id: u32, hash: &str) {
+    let url = format!("https://item.exchange/item/download/{item_id}");
+    let file = fetch_file(&url, hash).unwrap();
+    let reader = BufReader::new(file);
+
+    Item::read_from(reader).unwrap();
+}
+
+macro_rules! test_read_item {
+    ($id:literal, $hash:literal) => {
+        paste! {
+            #[test]
+            fn [<read_item_ $id>]() {
+                test_read_item($id, $hash);
+            }
+        }
+    };
+}
+
+test_read_item!(21172, "iaLvppeLVEDLEo8XRAz2kORTE6aBTRACHyM0JESqc3s");
 
 fn test_read_map(map_id: u32, hash: &str) {
     let url = format!("https://trackmania.exchange/maps/download/{map_id}");
