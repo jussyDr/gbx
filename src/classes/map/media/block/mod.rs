@@ -4,21 +4,10 @@ pub mod key;
 use crate::error::ReadResult;
 use crate::ghost::EntityRecord;
 use crate::reader::{self, Reader};
-use crate::{FileRef, InternalFileRef};
+use crate::{FileRef, InternalFileRef, Rgb};
 use num_enum::TryFromPrimitive;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
-
-/// RGB color.
-#[derive(Clone, Debug)]
-pub struct Rgb {
-    /// Red.
-    pub red: f32,
-    /// Green.
-    pub green: f32,
-    /// Blue.
-    pub blue: f32,
-}
 
 /// Effect of a media block.
 #[derive(Clone)]

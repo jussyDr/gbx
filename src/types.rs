@@ -38,6 +38,17 @@ where
     }
 }
 
+/// RGB color.
+#[derive(Clone, Debug)]
+pub struct Rgb {
+    /// Red.
+    pub red: f32,
+    /// Green.
+    pub green: f32,
+    /// Blue.
+    pub blue: f32,
+}
+
 /// Reference to an internal file.
 #[derive(Clone, Debug)]
 pub struct InternalFileRef {
@@ -93,7 +104,9 @@ impl RcStr {
         Self(Some(s.into()))
     }
 
-    /// Create an empty reference counted string.
+    /// Create an empty `RcStr`.
+    ///
+    /// This function does not allocate, and the resulting `RcStr` is not reference counted.
     pub const fn empty() -> Self {
         Self(None)
     }

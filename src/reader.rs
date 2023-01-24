@@ -107,6 +107,14 @@ where
         }
     }
 
+    pub fn bool_u8(&mut self) -> ReadResult<bool> {
+        match self.u8()? {
+            0 => Ok(false),
+            1 => Ok(true),
+            _ => Err(ReadError::Generic(String::from("expected boolean"))),
+        }
+    }
+
     pub fn packed_index(&mut self, max: u32) -> ReadResult<u32> {
         if max <= u8::MAX as u32 {
             self.u8().map(|index| index as u32)
@@ -211,7 +219,7 @@ where
 
         if value != chunk_id {
             return Err(ReadError::Generic(format!(
-                "expected chunk {chunk_id:08X}, got chunk {value:08X}"
+                "expected chunk {chunk_id:08X}, found chunk {value:08X}"
             )));
         }
 
@@ -235,7 +243,7 @@ where
 
         if value != class_id {
             return Err(ReadError::Generic(format!(
-                "expected class {class_id:08X}, got class {value:08X}"
+                "expected class {class_id:08X}, found class {value:08X}"
             )));
         }
 
@@ -366,7 +374,7 @@ where
     pub fn id(&mut self) -> ReadResult<RcStr> {
         match self.optional_id()? {
             Some(id) => Ok(id),
-            None => Err(ReadError::Generic(String::from("expected id, got null"))),
+            None => Err(ReadError::Generic(String::from("expected id, found null"))),
         }
     }
 
@@ -423,7 +431,9 @@ where
     {
         match self.optional_node(class_id, read_fn)? {
             Some(node) => Ok(node),
-            None => Err(ReadError::Generic(String::from("expected node, got null"))),
+            None => Err(ReadError::Generic(String::from(
+                "expected node, found null",
+            ))),
         }
     }
 
@@ -443,7 +453,7 @@ where
         self.any_optional_node(|r, id| {
             if id != class_id {
                 return Err(ReadError::Generic(format!(
-                    "expected class {class_id:08X}, got {id:08X}"
+                    "expected class {class_id:08X}, found {id:08X}"
                 )));
             }
 
@@ -467,7 +477,9 @@ where
     {
         match self.any_optional_node(read_fn)? {
             Some(node) => Ok(node),
-            None => Err(ReadError::Generic(String::from("expected node, got null"))),
+            None => Err(ReadError::Generic(String::from(
+                "expected node, found null",
+            ))),
         }
     }
 
@@ -528,5 +540,13 @@ where
         } else {
             Err(ReadError::Generic(String::from("invalid node index")))
         }
+    }
+
+    pub fn any_optional_node_owned<T, F>(&mut self, read_fn: F) -> ReadResult<Option<T>>
+    where
+        T: 'static + Clone,
+        F: FnMut(&mut Self, u32) -> ReadResult<T>,
+    {
+        self.any_optional_node(read_fn).map(|node| node.cloned())
     }
 }

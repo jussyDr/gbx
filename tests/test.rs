@@ -3,15 +3,31 @@ use base64::Engine;
 use gbx::{Block, Item, Map};
 use paste::paste;
 use sha2::{Digest, Sha256};
-use std::fs::{File, OpenOptions};
-use std::io::{BufReader, Seek, Write};
+use std::fs::{self, File, OpenOptions};
+use std::io::{BufReader, Read, Seek, Write};
 use std::path::Path;
 
 fn fetch_file(url: &str, hash_base64: &str) -> Result<File> {
     let path = Path::new(env!("CARGO_TARGET_TMPDIR")).join(hash_base64);
 
     let file = if path.try_exists()? {
-        File::open(path)?
+        let mut file = File::open(&path)?;
+        let mut bytes = vec![];
+        file.read_to_end(&mut bytes)?;
+
+        let mut hasher = Sha256::new();
+        hasher.update(&bytes);
+        let hash = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(hasher.finalize());
+
+        if hash != hash_base64 {
+            drop(file);
+            fs::remove_file(path)?;
+
+            return Err(anyhow!("incorrect file hash: {}", hash));
+        }
+
+        file.rewind()?;
+        file
     } else {
         let bytes = reqwest::blocking::Client::builder()
             .user_agent("gbx-rs")
@@ -86,7 +102,10 @@ macro_rules! test_read_item {
     };
 }
 
+test_read_item!(5933, "vvSSNoLARSsF0XkoVuOtjUs6qu2-JGPel84zKUA6pVQ");
 test_read_item!(21172, "iaLvppeLVEDLEo8XRAz2kORTE6aBTRACHyM0JESqc3s");
+test_read_item!(26427, "-56XYR9Zubtctt_EBzKJ-NCrERE-JVeSGetzPH0URNY");
+test_read_item!(44357, "1KCsxGkqUe0AqfNUEM1BCBAKE_MaQZjeDHZ9olZJthM");
 
 fn test_read_map(map_id: u32, hash: &str) {
     let url = format!("https://trackmania.exchange/maps/download/{map_id}");

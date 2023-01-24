@@ -12,9 +12,97 @@ use item::Item;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
+#[derive(Clone, Default)]
+struct Material;
+
+impl Material {
+    fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    where
+        R: Read + Seek,
+        I: BorrowMut<reader::IdState>,
+    {
+        let mut material = Self::default();
+        gbx::read_body(&mut material, r)?;
+        Ok(material)
+    }
+
+    fn read_chunk_090fd000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    where
+        R: Read + Seek,
+        I: BorrowMut<reader::IdState>,
+    {
+        let version = r.u32()?;
+
+        let is_game_material = if version >= 11 { r.bool_u8()? } else { false };
+        r.optional_id()?;
+        r.u32()?;
+        r.u32()?;
+        r.u8()?;
+        r.u8()?;
+        if version >= 11 && !is_game_material {
+            r.id()?;
+        } else {
+            r.string()?;
+        }
+        r.list(|r| {
+            r.id()?;
+            r.id()?;
+            r.u32()?;
+
+            Ok(())
+        })?;
+        r.list(|r| r.u32())?;
+        r.u32()?;
+        r.u32()?;
+        r.u32()?;
+        r.u32()?;
+
+        Ok(())
+    }
+
+    fn read_chunk_090fd001<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    where
+        R: Read,
+    {
+        r.u32()?;
+        r.u32()?;
+        r.u32()?;
+        r.u32()?;
+        r.u32()?;
+        r.u32()?;
+        r.u32()?;
+
+        Ok(())
+    }
+
+    fn read_chunk_090fd002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    where
+        R: Read,
+    {
+        r.u32()?;
+        r.u32()?;
+
+        Ok(())
+    }
+}
+
+impl<R, I, N> ReadBody<R, I, N> for Material
+where
+    R: Read + Seek,
+    I: BorrowMut<reader::IdState>,
+{
+    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
+        &[
+            (0x090FD000, ReadChunk::Read(Self::read_chunk_090fd000)),
+            (0x090FD001, ReadChunk::Read(Self::read_chunk_090fd001)),
+            (0x090FD002, ReadChunk::Read(Self::read_chunk_090fd002)),
+        ]
+    }
+}
+
 #[derive(Default)]
 struct Crystal {
-    pub materials: Vec<()>,
+    pub materials: Vec<Material>,
 }
 
 impl Crystal {
@@ -40,57 +128,16 @@ impl Crystal {
 
     fn read_chunk_09003003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
-        R: Read,
+        R: Read + Seek,
         I: BorrowMut<reader::IdState>,
         N: BorrowMut<reader::NodeState>,
     {
         r.u32()?;
         self.materials = r.list(|r| {
             r.u32()?;
-            r.node(0x090FD000, |r| {
-                r.chunk_id(0x090FD000)?;
-                let version = r.u32()?;
-                if version >= 11 {
-                    r.u8()?;
-                }
-                r.u32()?;
-                r.u32()?;
-                r.u32()?;
-                r.u8()?;
-                r.u8()?;
-                let _name = r.string()?;
-                r.list(|r| {
-                    r.id()?;
-                    r.id()?;
-                    r.u32()?;
+            let material = r.node_owned(0x090FD000, Material::read)?;
 
-                    Ok(())
-                })?;
-                r.list(|r| r.u32())?;
-                r.u32()?;
-                r.u32()?;
-                r.u32()?;
-                r.u32()?;
-
-                r.chunk_id(0x090FD001)?;
-                r.u32()?;
-                r.u32()?;
-                r.u32()?;
-                r.u32()?;
-                r.u32()?;
-                r.u32()?;
-                r.u32()?;
-
-                r.chunk_id(0x090FD002)?;
-                r.u32()?;
-                r.u32()?;
-
-                Ok(())
-            })?;
-
-            r.node_end()?;
-
-            Ok(())
+            Ok(material)
         })?;
 
         Ok(())
@@ -100,6 +147,7 @@ impl Crystal {
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
     {
         r.u32()?;
         let _layers = r.list(|r| {
@@ -121,6 +169,54 @@ impl Crystal {
                 14 => {
                     read_mesh(r, self.materials.len() as u32)?;
                     r.list(|r| r.u32())?;
+                }
+                15 => {
+                    r.u32()?;
+                    r.u32()?;
+                    r.vec3f32()?;
+                    r.f32()?;
+                    r.f32()?;
+                    r.f32()?;
+                }
+                18 => {
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.node(0x090F9000, |r| {
+                        r.chunk_id(0x090F9000)?;
+                        r.u32()?;
+                        r.u32()?;
+                        r.f32()?;
+                        r.f32()?;
+                        r.f32()?;
+                        r.f32()?;
+                        r.f32()?;
+                        r.f32()?;
+                        r.f32()?;
+                        r.f32()?;
+                        r.f32()?;
+                        r.f32()?;
+                        r.f32()?;
+                        r.u32()?;
+
+                        r.node_end()?;
+
+                        Ok(())
+                    })?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
                 }
                 _ => panic!("{}", layer_type),
             }
@@ -177,7 +273,7 @@ impl Crystal {
 
 impl<R, I, N> ReadBody<R, I, N> for Crystal
 where
-    R: Read,
+    R: Read + Seek,
     I: BorrowMut<reader::IdState>,
     N: BorrowMut<reader::NodeState>,
 {
@@ -398,7 +494,7 @@ impl ItemModel {
         r.u32()?;
         r.u32()?;
         r.u32()?;
-        *self = r.any_node_owned(|r, class_id| {
+        if let Some(item_model) = r.any_optional_node_owned(|r, class_id| {
             let item_model = match class_id {
                 0x2E025000 => ItemModel::Block(Block::read(r)?),
                 0x2E026000 => ItemModel::Item(Item::read(r)?),
@@ -406,8 +502,267 @@ impl ItemModel {
             };
 
             Ok(item_model)
-        })?;
-        r.u32()?;
+        })? {
+            *self = item_model;
+        }
+        if let Some(item_model) = r.optional_node_owned(0x2E027000, |r| {
+            r.chunk_id(0x2E027000)?;
+            r.u32()?;
+            r.node(0x09159000, |r| {
+                r.u32()?;
+                r.node(0x090BB000, |r| {
+                    r.chunk_id(0x090BB000)?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.list(|r| {
+                        r.node(0x0901E000, |r| {
+                            r.chunk_id(0x09006001)?;
+                            r.u32()?;
+
+                            r.chunk_id(0x09006005)?;
+                            r.u32()?;
+
+                            r.chunk_id(0x09006009)?;
+                            r.u32()?;
+
+                            r.chunk_id(0x0900600B)?;
+                            r.u32()?;
+
+                            r.chunk_id(0x0900600F)?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.node(0x09056000, |r| {
+                                r.chunk_id(0x09056000)?;
+                                r.u32()?;
+                                let num_vertices = r.u32()?;
+                                r.u32()?;
+                                r.u32()?;
+                                let attributes = r.list(|r| {
+                                    r.u8()?; // byte offset * 4
+                                    r.u8()?;
+                                    r.u8()?;
+                                    r.u8()?;
+                                    r.u8()?;
+                                    r.u8()?;
+                                    let _byte_offset = r.u8()?;
+                                    r.u8()?;
+                                    let kind = r.u8()?;
+                                    r.u8()?;
+                                    r.u8()?;
+                                    r.u8()?;
+
+                                    Ok(kind)
+                                })?;
+                                for kind in attributes {
+                                    match kind {
+                                        1 => {
+                                            r.repeat(num_vertices as usize, |r| {
+                                                r.f32()?;
+                                                r.f32()?;
+
+                                                Ok(())
+                                            })?;
+                                        }
+                                        5 => {
+                                            r.repeat(num_vertices as usize, |r| {
+                                                r.f32()?;
+                                                r.f32()?;
+                                                r.f32()?;
+
+                                                Ok(())
+                                            })?;
+                                        }
+                                        10 => {
+                                            r.repeat(num_vertices as usize, |r| r.u32())?;
+                                        }
+                                        11 => {
+                                            r.repeat(num_vertices as usize, |r| {
+                                                r.f32()?;
+                                                r.f32()?;
+
+                                                Ok(())
+                                            })?;
+                                        }
+                                        18 => {
+                                            r.repeat(num_vertices as usize, |r| r.f32())?;
+                                        }
+                                        20 => {
+                                            r.repeat(num_vertices as usize, |r| r.f32())?;
+                                        }
+                                        _ => panic!(),
+                                    }
+                                }
+
+                                r.node_end()?;
+
+                                Ok(())
+                            })?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+
+                            r.chunk_id(0x09006010)?;
+                            r.u32()?;
+                            r.u32()?;
+
+                            r.chunk_id(0x0902C002)?;
+                            r.u32()?;
+
+                            r.chunk_id(0x0902C004)?;
+                            r.u32()?;
+                            r.u32()?;
+
+                            r.chunk_id(0x0906A001)?;
+                            r.u32()?;
+                            {
+                                r.chunk_id(0x09057001)?;
+                                r.u32()?;
+                                let mut current_index = 0;
+                                let _indices = r.list(|r| {
+                                    let offset = r.i16()?;
+
+                                    if offset.is_positive() {
+                                        current_index += offset as u16;
+                                    } else {
+                                        current_index -= (-offset) as u16;
+                                    }
+
+                                    Ok(current_index)
+                                })?;
+
+                                r.node_end()?;
+                            }
+
+                            r.node_end()?;
+
+                            Ok(())
+                        })?;
+
+                        Ok(())
+                    })?;
+                    r.u32()?;
+                    let num_materials = r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.string()?; // "Stadium\Media\Material\"
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.string()?; // "*.Item.xml"
+                    r.u32()?;
+                    r.repeat(num_materials as usize, |r| {
+                        r.u32()?;
+                        r.node(0x090FD000, Material::read)?;
+
+                        Ok(())
+                    })?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+
+                    r.skip_chunk(0x090BB002)?;
+
+                    r.node_end()?;
+
+                    Ok(())
+                })?;
+                r.u8()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+
+                r.node_end()?;
+
+                Ok(())
+            })?;
+            r.u32()?;
+
+            Ok(ItemModel::Item(Item::default()))
+        })? {
+            *self = item_model;
+        }
         if version >= 15 {
             r.u32()?;
         }
