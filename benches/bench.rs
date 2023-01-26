@@ -60,15 +60,15 @@ fn fetch_file(url: &str, hash_base64: &str) -> Result<File> {
 }
 
 fn bench(c: &mut Criterion) {
-    let block_id = 44867;
+    let block_id = 50037;
     let url = format!("https://item.exchange/item/download/{block_id}");
-    let mut file = fetch_file(&url, "U6JKwKAv62gS_KLHuJpaSc0Ri5mHvbitGodiceC-5qI").unwrap();
+    let mut file = fetch_file(&url, "fCmY6tchDnNmRIxQypzgEuOCzc5s4Avy0MjGZ6YsgtA").unwrap();
     let mut buf = vec![];
     file.read_to_end(&mut buf).unwrap();
 
     c.bench_function(&format!("read block {block_id}"), |b| {
         b.iter_with_large_drop(|| {
-            black_box(Block::read_from(buf.as_slice()).unwrap());
+            black_box(Block::read_from(buf.as_slice()).ok());
         })
     });
 
@@ -80,7 +80,7 @@ fn bench(c: &mut Criterion) {
 
     c.bench_function(&format!("read map {map_id}"), |b| {
         b.iter_with_large_drop(|| {
-            black_box(Map::read_from(buf.as_slice()).unwrap());
+            black_box(Map::read_from(buf.as_slice()).ok());
         })
     });
 }
