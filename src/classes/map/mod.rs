@@ -101,7 +101,7 @@ pub enum PhaseOffset {
 }
 
 /// Skin of a block or item.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Skin {
     /// The skin.
     pub skin: Option<FileRef>,
@@ -252,7 +252,7 @@ where
 }
 
 /// A block inside of a `Map`.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Block {
     /// Id of the block's model.
     pub model_id: RcStr,
@@ -277,7 +277,7 @@ pub struct Block {
 }
 
 /// A free block inside of a `Map`.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct FreeBlock {
     /// Id of the block's model.
     pub model_id: RcStr,
@@ -300,6 +300,7 @@ pub struct FreeBlock {
 }
 
 /// Either a 'normal' or free block.
+#[derive(Debug)]
 pub enum BlockType {
     /// A 'normal' block.
     Normal(Block),
@@ -422,8 +423,8 @@ pub struct Map {
     pub num_laps: Option<u32>,
     /// Name of the map.
     pub name: String,
-    /// Id of the map decoration.
-    pub deco_name: RcStr,
+    /// `true` if the map has no stadium.
+    pub no_stadium: bool,
     /// Optional thumbnail of the map as raw JPEG.
     pub thumbnail: Option<Vec<u8>>,
     /// Name of the map author.
@@ -442,6 +443,10 @@ pub struct Map {
     pub music: Option<FileRef>,
     /// All items placed inside of the map.
     pub items: Vec<Item>,
+    /// All blocks inside the map, including grass blocks and clips.
+    ///
+    /// The `skin` and `waypoint_property` of the baked blocks are always `None`.
+    pub baked_blocks: Vec<BlockType>,
     /// Optional MediaTracker clip for the map intro.
     pub intro_media: Option<media::Clip>,
     /// Optional MediaTracker clip for the podium.
@@ -452,14 +457,12 @@ pub struct Map {
     pub end_race_media: Option<media::ClipGroup>,
     /// Optional MediaTracker clip for the map ambiance.
     pub ambiance_media: Option<media::Clip>,
-    /// Id's of the files embedded in the map.
+    /// Ids of the files embedded in the map.
     ///
     /// The length is equal to the number of files in the `embedded_files` ZIP archive.
     pub embedded_file_ids: Vec<RcStr>,
     /// All files embedded in the map as a raw ZIP archive.
     pub embedded_files: Option<Vec<u8>>,
-
-    baked_blocks: Vec<BlockType>,
 }
 
 impl Map {
@@ -537,7 +540,15 @@ impl Map {
         r.u8()?;
         r.u32()?;
         r.u32()?;
-        self.deco_name = r.id()?;
+        self.no_stadium = match r.id()?.as_str() {
+            "48x48Sunrise" => false,
+            "48x48Day" => false,
+            "48x48Sunset" => false,
+            "48x48Night" => false,
+            "NoStadium48x48Day" => true,
+            "Day16x12" => true,
+            _ => panic!(),
+        };
         r.u32()?;
         let _deco_author = r.id()?;
         r.u32()?;
@@ -706,7 +717,15 @@ impl Map {
         r.u32()?;
         r.id()?;
         self.name = r.string()?;
-        self.deco_name = r.id()?;
+        self.no_stadium = match r.id()?.as_str() {
+            "48x48Sunrise" => false,
+            "48x48Day" => false,
+            "48x48Sunset" => false,
+            "48x48Night" => false,
+            "NoStadium48x48Day" => true,
+            "Day16x12" => true,
+            _ => panic!(),
+        };
         r.u32()?;
         let _deco_author = r.id()?;
         self.size.x = r.u32()?;

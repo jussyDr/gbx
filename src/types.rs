@@ -1,3 +1,4 @@
+use std::fmt::{self, Debug, Display};
 use std::ops::{Add, Deref};
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -106,7 +107,7 @@ impl RcStr {
 
     /// Create an empty `RcStr`.
     ///
-    /// This function does not allocate, and the resulting `RcStr` is not reference counted.
+    /// This function does not allocate, and the resulting `RcStr` is not actually reference counted.
     pub const fn empty() -> Self {
         Self(None)
     }
@@ -124,6 +125,24 @@ impl Deref for RcStr {
         match self.0 {
             None => "",
             Some(ref rc) => rc.deref(),
+        }
+    }
+}
+
+impl Debug for RcStr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Self(Some(ref str)) => Debug::fmt(str, f),
+            Self(None) => Debug::fmt("", f),
+        }
+    }
+}
+
+impl Display for RcStr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Self(Some(ref str)) => Display::fmt(str, f),
+            Self(None) => Display::fmt("", f),
         }
     }
 }
