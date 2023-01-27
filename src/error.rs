@@ -32,10 +32,10 @@ impl From<io::Error> for ReadError {
 impl Display for ReadError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            ReadError::Generic(ref message) => f.write_str(message),
-            ReadError::Utf8(ref err) => Display::fmt(err, f),
-            ReadError::Lzo(ref err) => Display::fmt(err, f),
-            ReadError::Io(ref err) => Display::fmt(err, f),
+            Self::Generic(ref message) => f.write_str(message),
+            Self::Utf8(ref err) => Display::fmt(err, f),
+            Self::Lzo(ref err) => Display::fmt(err, f),
+            Self::Io(ref err) => Display::fmt(err, f),
         }
     }
 }
@@ -44,3 +44,28 @@ impl std::error::Error for ReadError {}
 
 /// Read result.
 pub type ReadResult<T> = std::result::Result<T, ReadError>;
+
+/// Write error.
+#[derive(Debug)]
+pub enum WriteError {
+    Io(io::Error),
+}
+
+impl From<io::Error> for WriteError {
+    fn from(err: io::Error) -> Self {
+        Self::Io(err)
+    }
+}
+
+impl Display for WriteError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Self::Io(ref err) => Display::fmt(err, f),
+        }
+    }
+}
+
+impl std::error::Error for WriteError {}
+
+/// Write Result.
+pub type WriteResult = std::result::Result<(), WriteError>;

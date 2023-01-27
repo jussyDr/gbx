@@ -1,16 +1,17 @@
 /// Media tracker types.
 pub mod media;
 
-use crate::error::ReadResult;
+use crate::error::{ReadResult, WriteResult};
 use crate::gbx::{Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader};
 use crate::reader::{self, Reader};
 use crate::types::{RcStr, Vec3};
+use crate::writer::Writer;
 use crate::{gbx, FileRef, Ghost};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::borrow::BorrowMut;
 use std::cmp::Ordering;
 use std::fs::File;
-use std::io::{BufReader, Cursor, Read, Seek};
+use std::io::{BufReader, BufWriter, Cursor, Read, Seek, Write};
 use std::ops::Sub;
 use std::path::Path;
 
@@ -500,6 +501,52 @@ impl Map {
         Self::read_from(reader)
     }
 
+    /// Write the map to the given `writer`.
+    ///
+    /// For performance reasons, it is recommended that the `writer` is buffered.
+    pub fn write_to<W>(&self, writer: W) -> WriteResult
+    where
+        W: Write,
+    {
+        let user_data = &[];
+        let num_nodes = 0;
+        let body = &[];
+
+        let mut output = vec![0; lzo1x::worst_compress(body.len())];
+        let compressed_body = lzo1x::compress_to_slice(body, &mut output);
+
+        let mut w = Writer::new(writer);
+
+        w.bytes(b"GBX")?;
+        w.u16(6)?;
+        w.u8(b'B')?;
+        w.u8(b'U')?;
+        w.u8(b'C')?;
+        w.u8(b'R')?;
+        w.u32(Self::CLASS_ID)?;
+        w.u32(user_data.len() as u32)?;
+        w.bytes(user_data)?;
+        w.u32(num_nodes)?;
+        w.u32(0)?;
+        w.u32(body.len() as u32)?;
+        w.u32(compressed_body.len() as u32)?;
+        w.bytes(compressed_body)?;
+
+        Ok(())
+    }
+
+    /// Write the map to a file at the given `path`.
+    ///
+    /// Will create the file if it does not exist, and will truncate it if it does.
+    pub fn write_to_file<P>(&self, path: P) -> WriteResult
+    where
+        P: AsRef<Path>,
+    {
+        let file = File::create(path)?;
+        let writer = BufWriter::new(file);
+        self.write_to(writer)
+    }
+
     fn read_chunk_03043002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
@@ -526,7 +573,21 @@ impl Map {
 
         Ok(())
     }
+}
 
+fn deco_has_no_stadium(deco_id: &str) -> bool {
+    match deco_id {
+        "48x48Sunrise" => false,
+        "48x48Day" => false,
+        "48x48Sunset" => false,
+        "48x48Night" => false,
+        "NoStadium48x48Day" => true,
+        "Day16x12" => true,
+        _ => panic!(),
+    }
+}
+
+impl Map {
     fn read_chunk_03043003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
@@ -540,15 +601,7 @@ impl Map {
         r.u8()?;
         r.u32()?;
         r.u32()?;
-        self.no_stadium = match r.id()?.as_str() {
-            "48x48Sunrise" => false,
-            "48x48Day" => false,
-            "48x48Sunset" => false,
-            "48x48Night" => false,
-            "NoStadium48x48Day" => true,
-            "Day16x12" => true,
-            _ => panic!(),
-        };
+        self.no_stadium = deco_has_no_stadium(r.id()?.as_str());
         r.u32()?;
         let _deco_author = r.id()?;
         r.u32()?;
@@ -717,15 +770,7 @@ impl Map {
         r.u32()?;
         r.id()?;
         self.name = r.string()?;
-        self.no_stadium = match r.id()?.as_str() {
-            "48x48Sunrise" => false,
-            "48x48Day" => false,
-            "48x48Sunset" => false,
-            "48x48Night" => false,
-            "NoStadium48x48Day" => true,
-            "Day16x12" => true,
-            _ => panic!(),
-        };
+        self.no_stadium = deco_has_no_stadium(r.id()?.as_str());
         r.u32()?;
         let _deco_author = r.id()?;
         self.size.x = r.u32()?;

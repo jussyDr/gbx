@@ -1,8 +1,15 @@
+use num_enum::{IntoPrimitive, TryFromPrimitive};
+
 use crate::error::{ReadError, ReadResult};
-use crate::header::{Compression, Header};
 use crate::reader::{self, IdState, NodeState, Reader};
-use crate::ref_table::RefTable;
 use std::io::{Cursor, Read, Seek};
+
+#[derive(PartialEq, TryFromPrimitive, IntoPrimitive)]
+#[repr(u8)]
+pub enum Compression {
+    Compressed = b'C',
+    Uncompressed = b'U',
+}
 
 pub type ReadChunkFn<T, R, I, N> = fn(&mut T, &mut Reader<R, I, N>) -> ReadResult<()>;
 
@@ -41,10 +48,48 @@ where
 
     let mut r = Reader::new(reader);
 
-    let header = Header::read(&mut r, T::CLASS_ID)?;
+    if r.bytes(3)? != b"GBX" {
+        return Err(ReadError::Generic(String::from("bad magic")));
+    }
 
-    if !header.user_data.is_empty() {
-        let mut r = Reader::new(header.user_data.as_slice());
+    match r.u16()? {
+        6 => {}
+        _ => return Err(ReadError::Generic(String::from("unsupported file version"))),
+    }
+
+    match r.u8()? {
+        b'B' => {}
+        _ => {
+            return Err(ReadError::Generic(String::from(
+                "file format not supported",
+            )))
+        }
+    }
+
+    let ref_table_compression = Compression::try_from(r.u8()?)
+        .map_err(|_err| ReadError::Generic(String::from("unknown compression")))?;
+
+    if matches!(ref_table_compression, Compression::Compressed) {
+        return Err(ReadError::Generic(String::from(
+            "compressed ref table not supported",
+        )));
+    }
+
+    let body_compression = Compression::try_from(r.u8()?)
+        .map_err(|_err| ReadError::Generic(String::from("unknown compression")))?;
+
+    match r.u8()? {
+        b'R' => {}
+        _unknown => return Err(ReadError::Generic(String::from("bad unknown byte"))),
+    }
+
+    r.class_id(T::CLASS_ID)?;
+    let user_data_size = r.u32()?;
+    let user_data = r.bytes(user_data_size as usize)?;
+    let num_nodes = r.u32()?;
+
+    if !user_data.is_empty() {
+        let mut r = Reader::new(user_data.as_slice());
 
         let user_data_chunks = r.list(|r| {
             let chunk_id = r.u32()?;
@@ -76,9 +121,13 @@ where
         }
     }
 
-    RefTable::read(&mut r)?;
+    let num_node_refs = r.u32()?;
 
-    if header.body_compression == Compression::Compressed {
+    if num_node_refs > 0 {
+        todo!()
+    }
+
+    if body_compression == Compression::Compressed {
         let body_size = r.u32()?;
         let compressed_body_size = r.u32()?;
         let compressed_body = r.bytes(compressed_body_size as usize)?;
@@ -89,7 +138,7 @@ where
         let mut r = Reader::with_id_and_node_state(
             Cursor::new(body),
             reader::IdState::new(),
-            reader::NodeState::new(header.num_nodes as usize),
+            reader::NodeState::new(num_nodes as usize),
         );
 
         read_body(&mut node, &mut r)?
