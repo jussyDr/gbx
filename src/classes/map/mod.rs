@@ -582,7 +582,7 @@ impl Map {
             let mut chunk_5 = vec![];
             {
                 let mut w = Writer::new(&mut chunk_5);
-                w.u32(0)?;
+                w.string("")?;
             }
 
             let mut chunk_7 = vec![];

@@ -1,7 +1,6 @@
-use num_enum::{IntoPrimitive, TryFromPrimitive};
-
 use crate::error::{ReadError, ReadResult};
 use crate::reader::{self, IdState, NodeState, Reader};
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::io::{Cursor, Read, Seek};
 
 #[derive(PartialEq, TryFromPrimitive, IntoPrimitive)]
