@@ -1,67 +1,10 @@
-use anyhow::{anyhow, Result};
-use base64::Engine;
 use gbx::{Block, Item, Map};
 use paste::paste;
-use sha2::{Digest, Sha256};
-use std::fs::{self, File, OpenOptions};
-use std::io::{BufReader, Read, Seek, Write};
-use std::path::Path;
-
-fn fetch_file(url: &str, hash_base64: &str) -> Result<File> {
-    let path = Path::new(env!("CARGO_TARGET_TMPDIR")).join(hash_base64);
-
-    let file = if path.try_exists()? {
-        let mut file = File::open(&path)?;
-        let mut bytes = vec![];
-        file.read_to_end(&mut bytes)?;
-
-        let mut hasher = Sha256::new();
-        hasher.update(&bytes);
-        let hash = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(hasher.finalize());
-
-        if hash != hash_base64 {
-            drop(file);
-            fs::remove_file(path)?;
-
-            return Err(anyhow!("incorrect file hash: {}", hash));
-        }
-
-        file.rewind()?;
-        file
-    } else {
-        let bytes = reqwest::blocking::Client::builder()
-            .user_agent("gbx-rs")
-            .build()?
-            .get(url)
-            .send()?
-            .bytes()?;
-
-        let mut hasher = Sha256::new();
-        hasher.update(&bytes);
-        let hash = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(hasher.finalize());
-
-        if hash != hash_base64 {
-            return Err(anyhow!("incorrect file hash: {}", hash));
-        }
-
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(path)?;
-
-        file.write_all(&bytes)?;
-        file.rewind()?;
-
-        file
-    };
-
-    Ok(file)
-}
+use std::io::BufReader;
 
 fn test_read_block(block_id: u32, hash: &str) {
     let url = format!("https://item.exchange/item/download/{block_id}");
-    let file = fetch_file(&url, hash).unwrap();
+    let file = test_util::fetch_file(&url, hash, env!("CARGO_TARGET_TMPDIR")).unwrap();
     let reader = BufReader::new(file);
 
     Block::read_from(reader).unwrap();
@@ -85,7 +28,7 @@ test_read_block!(44867, "U6JKwKAv62gS_KLHuJpaSc0Ri5mHvbitGodiceC-5qI");
 
 fn test_read_item(item_id: u32, hash: &str) {
     let url = format!("https://item.exchange/item/download/{item_id}");
-    let file = fetch_file(&url, hash).unwrap();
+    let file = test_util::fetch_file(&url, hash, env!("CARGO_TARGET_TMPDIR")).unwrap();
     let reader = BufReader::new(file);
 
     Item::read_from(reader).unwrap();
@@ -111,7 +54,7 @@ test_read_item!(45331, "nBM1Y3OlRxlH5kvfTALN0zZXNenGElSlOLB82RX2g_s");
 
 fn test_read_map(map_id: u32, hash: &str) {
     let url = format!("https://trackmania.exchange/maps/download/{map_id}");
-    let file = fetch_file(&url, hash).unwrap();
+    let file = test_util::fetch_file(&url, hash, env!("CARGO_TARGET_TMPDIR")).unwrap();
     let reader = BufReader::new(file);
 
     Map::read_from(reader).unwrap();

@@ -1,68 +1,16 @@
-use anyhow::{anyhow, Result};
-use base64::Engine;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use gbx::{Block, Map};
-use sha2::{Digest, Sha256};
-use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Seek, Write};
-use std::path::Path;
-
-fn fetch_file(url: &str, hash_base64: &str) -> Result<File> {
-    let path = Path::new(env!("CARGO_TARGET_TMPDIR")).join(hash_base64);
-
-    let file = if path.try_exists()? {
-        let mut file = File::open(&path)?;
-        let mut bytes = vec![];
-        file.read_to_end(&mut bytes)?;
-
-        let mut hasher = Sha256::new();
-        hasher.update(&bytes);
-        let hash = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(hasher.finalize());
-
-        if hash != hash_base64 {
-            drop(file);
-            fs::remove_file(path)?;
-
-            return Err(anyhow!("incorrect file hash: {}", hash));
-        }
-
-        file.rewind()?;
-        file
-    } else {
-        let bytes = reqwest::blocking::Client::builder()
-            .user_agent("gbx-rs")
-            .build()?
-            .get(url)
-            .send()?
-            .bytes()?;
-
-        let mut hasher = Sha256::new();
-        hasher.update(&bytes);
-        let hash = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(hasher.finalize());
-
-        if hash != hash_base64 {
-            return Err(anyhow!("incorrect file hash: {}", hash));
-        }
-
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(path)?;
-
-        file.write_all(&bytes)?;
-        file.rewind()?;
-
-        file
-    };
-
-    Ok(file)
-}
+use std::io::Read;
 
 fn bench(c: &mut Criterion) {
     let block_id = 50037;
     let url = format!("https://item.exchange/item/download/{block_id}");
-    let mut file = fetch_file(&url, "fCmY6tchDnNmRIxQypzgEuOCzc5s4Avy0MjGZ6YsgtA").unwrap();
+    let mut file = test_util::fetch_file(
+        &url,
+        "fCmY6tchDnNmRIxQypzgEuOCzc5s4Avy0MjGZ6YsgtA",
+        env!("CARGO_TARGET_TMPDIR"),
+    )
+    .unwrap();
     let mut buf = vec![];
     file.read_to_end(&mut buf).unwrap();
 
@@ -74,7 +22,12 @@ fn bench(c: &mut Criterion) {
 
     let map_id = 46951;
     let url = format!("https://trackmania.exchange/maps/download/{map_id}");
-    let mut file = fetch_file(&url, "RZY3fk02zYm2UrTSQx3xdl1omZ7GC1c5rY4CzD5WvXs").unwrap();
+    let mut file = test_util::fetch_file(
+        &url,
+        "RZY3fk02zYm2UrTSQx3xdl1omZ7GC1c5rY4CzD5WvXs",
+        env!("CARGO_TARGET_TMPDIR"),
+    )
+    .unwrap();
     let mut buf = vec![];
     file.read_to_end(&mut buf).unwrap();
 
