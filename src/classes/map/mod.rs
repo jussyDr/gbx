@@ -5,7 +5,7 @@ use crate::error::{ReadResult, WriteResult};
 use crate::gbx::{Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader};
 use crate::reader::{self, Reader};
 use crate::types::{RcStr, Vec3};
-use crate::writer::Writer;
+use crate::writer::{self, Writer};
 use crate::{gbx, FileRef, Ghost};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::borrow::BorrowMut;
@@ -406,16 +406,28 @@ where
 }
 
 /// Type corresponding to the file extension `Map.Gbx`.
+///
+/// # Examples
+///
+/// Change the validation status of a map.
+/// ```no_run
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let mut map = gbx::Map::read_from_file("MyMap.Map.Gbx")?;
+/// map.is_validated = true;
+/// map.write_to_file("MyMap.Map.Gbx")?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Default)]
 pub struct Map {
     /// Bronze medal time in milliseconds.
-    pub bronze_time: u32,
+    pub bronze_time: Option<u32>,
     /// Silver medal time in milliseconds.
-    pub silver_time: u32,
+    pub silver_time: Option<u32>,
     /// Gold medal time in milliseconds.
-    pub gold_time: u32,
+    pub gold_time: Option<u32>,
     /// Author medal time in milliseconds.
-    pub author_time: u32,
+    pub author_time: Option<u32>,
     /// Display cost of the map.
     pub cost: u32,
     /// Number of checkpoints needed to finish the map.
@@ -446,7 +458,7 @@ pub struct Map {
     pub items: Vec<Item>,
     /// All blocks inside the map, including grass blocks and clips.
     ///
-    /// The `skin` and `waypoint_property` of the baked blocks are always `None`.
+    /// The `skin` and `waypoint_property` fields of the baked blocks are always `None`.
     pub baked_blocks: Vec<BlockType>,
     /// Optional MediaTracker clip for the map intro.
     pub intro_media: Option<media::Clip>,
@@ -508,12 +520,566 @@ impl Map {
     where
         W: Write,
     {
-        let user_data = &[];
-        let num_nodes = 0;
-        let body = &[];
+        let mut user_data = vec![];
+        {
+            let mut id_state = writer::IdState::new();
+
+            let mut chunk_2 = vec![];
+            {
+                let mut w = Writer::new(&mut chunk_2);
+                w.u8(13)?;
+                w.u32(0)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(318)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(1)?;
+                w.u32(1)?;
+            }
+
+            let mut chunk_3 = vec![];
+            {
+                let mut w = Writer::with_id_state(&mut chunk_3, &mut id_state);
+                w.u8(13)?;
+                w.id(None)?;
+                w.u32(26)?;
+                w.id(None)?;
+                w.string("")?;
+                w.u8(6)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.id(Some("48x48Day"))?;
+                w.u32(26)?;
+                w.id(Some("Nadeo"))?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.string("TrackMania\\TM_Race")?;
+                w.u32(0)?;
+                w.u64(0)?;
+                w.u8(0)?;
+                w.id(Some("TMStadium"))?;
+            }
+
+            let mut chunk_4 = vec![];
+            {
+                let mut w = Writer::new(&mut chunk_4);
+                w.u32(6)?;
+            }
+
+            let mut chunk_5 = vec![];
+            {
+                let mut w = Writer::new(&mut chunk_5);
+                w.u32(0)?;
+            }
+
+            let mut chunk_7 = vec![];
+            {
+                let mut w = Writer::new(&mut chunk_7);
+                w.u32(0)?;
+            }
+
+            let mut chunk_8 = vec![];
+            {
+                let mut w = Writer::new(&mut chunk_8);
+                w.u32(1)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+            }
+
+            let mut w = Writer::new(&mut user_data);
+
+            w.u32(6)?;
+            w.u32(0x03043002)?;
+            w.u32(chunk_2.len() as u32)?;
+            w.u32(0x03043003)?;
+            w.u32(chunk_3.len() as u32)?;
+            w.u32(0x03043004)?;
+            w.u32(chunk_4.len() as u32)?;
+            w.u32(0x03043005)?;
+            w.u32(chunk_5.len() as u32 | 0x80000000)?;
+            w.u32(0x03043007)?;
+            w.u32(chunk_7.len() as u32 | 0x80000000)?;
+            w.u32(0x03043008)?;
+            w.u32(chunk_8.len() as u32)?;
+            w.bytes(&chunk_2)?;
+            w.bytes(&chunk_3)?;
+            w.bytes(&chunk_4)?;
+            w.bytes(&chunk_5)?;
+            w.bytes(&chunk_7)?;
+            w.bytes(&chunk_8)?;
+        }
+
+        let mut body = vec![];
+        let mut node_state = writer::NodeState::new();
+        {
+            let mut w =
+                Writer::with_id_and_node_state(&mut body, writer::IdState::new(), &mut node_state);
+
+            w.u32(0x0304300D)?;
+            w.id(None)?;
+            w.u32(0xFFFFFFFF)?;
+            w.u32(0xFFFFFFFF)?;
+
+            w.u32(0x03043011)?;
+            w.node(0x0301B000, |w| {
+                w.u32(0x0301B000)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+            w.node(0x0305B000, |w| {
+                w.u32(0x0305B001)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+
+                w.u32(0x0305B004)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0)?;
+
+                w.u32(0x0305B008)?;
+                w.u32(60000)?;
+                w.u32(0)?;
+
+                w.skippable_chunk(0x0305B00A, |mut w| {
+                    w.u32(0)?;
+                    w.u32(0xFFFFFFFF)?;
+                    w.u32(0xFFFFFFFF)?;
+                    w.u32(0xFFFFFFFF)?;
+                    w.u32(0xFFFFFFFF)?;
+                    w.u32(60000)?;
+                    w.u32(0)?;
+
+                    Ok(())
+                })?;
+
+                w.u32(0x0305B00D)?;
+                w.u32(0xFFFFFFFF)?;
+
+                w.skippable_chunk(0x0305B00E, |mut w| {
+                    w.string("TrackMania\\TM_Race")?;
+                    w.u32(0)?;
+                    w.u32(0)?;
+
+                    Ok(())
+                })?;
+
+                Ok(())
+            })?;
+            w.u32(6)?;
+
+            w.skippable_chunk(0x03043018, |mut w| {
+                w.u32(0)?;
+                w.u32(3)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043019, |mut w| {
+                w.file_ref(None)?;
+
+                Ok(())
+            })?;
+
+            w.u32(0x0304301F)?;
+            w.id(None)?;
+            w.u32(26)?;
+            w.id(None)?;
+            w.string("")?;
+            w.id(Some("48x48Day"))?;
+            w.u32(26)?;
+            w.id(Some("Nadeo"))?;
+            w.u32(48)?;
+            w.u32(40)?;
+            w.u32(48)?;
+            w.u32(0)?;
+            w.u32(6)?;
+            w.u32(0)?;
+
+            w.u32(0x03043022)?;
+            w.u32(1)?;
+
+            w.u32(0x03043024)?;
+            w.file_ref(None)?;
+
+            w.u32(0x03043025)?;
+            w.u32(0)?;
+            w.u32(0)?;
+            w.u32(0)?;
+            w.u32(0)?;
+
+            w.u32(0x03043026)?;
+            w.u32(0xFFFFFFFF)?;
+
+            w.u32(0x03043028)?;
+            w.u32(0)?;
+            w.u32(0)?;
+
+            w.skippable_chunk(0x03043029, |mut w| {
+                w.bytes(&[0; 16])?;
+                w.u32(0x51F6B4C7)?;
+
+                Ok(())
+            })?;
+
+            w.u32(0x0304302A)?;
+            w.u32(0)?;
+
+            w.skippable_chunk(0x03043034, |mut w| {
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043036, |mut w| {
+                w.f32(640.0)?;
+                w.f32(181.01933)?;
+                w.f32(640.0)?;
+                w.f32(std::f32::consts::FRAC_PI_4)?;
+                w.f32(std::f32::consts::FRAC_PI_4)?;
+                w.f32(0.0)?;
+                w.f32(90.0)?;
+                w.f32(10.0)?;
+                w.f32(0.0)?;
+                w.f32(-1.0)?;
+                w.f32(-1.0)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043038, |mut w| {
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x0304303E, |mut w| {
+                w.u32(0)?;
+                w.u32(10)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043040, |mut w| {
+                let mut bytes = vec![];
+                {
+                    let mut w = Writer::new(&mut bytes);
+                    w.u32(10)?;
+                    w.u32(0)?;
+                    w.u32(0)?;
+                    w.u32(0)?;
+                    w.u32(0)?;
+                    w.u32(0)?;
+                    w.u32(0)?;
+                    w.u32(0)?;
+                }
+
+                w.u32(7)?;
+                w.u32(0)?;
+                w.u32(bytes.len() as u32)?;
+                w.bytes(&bytes)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043042, |mut w| {
+                w.u32(1)?;
+                w.u32(0)?;
+                w.string("")?;
+                w.string("")?;
+                w.string("")?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043043, |mut w| {
+                let mut bytes = vec![];
+                {
+                    let mut w = Writer::new(&mut bytes);
+                    w.u32(0)?;
+                }
+
+                w.u32(0)?;
+                w.u32(bytes.len() as u32)?;
+                w.bytes(&bytes)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043044, |mut w| {
+                let mut bytes = vec![];
+                {
+                    let mut w = Writer::new(&mut bytes);
+
+                    w.u32(0x11002000)?;
+                    w.u32(6)?;
+                    w.u8(0)?;
+                    w.u8(0)?;
+                }
+
+                w.u32(0)?;
+                w.u32(bytes.len() as u32)?;
+                w.bytes(&bytes)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043048, |mut w| {
+                w.u32(0)?;
+                w.u32(6)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.u32(0x03043049)?;
+            w.u32(2)?;
+            w.u32(0xFFFFFFFF)?;
+            w.u32(0xFFFFFFFF)?;
+            w.u32(0xFFFFFFFF)?;
+            w.u32(0xFFFFFFFF)?;
+            w.u32(0xFFFFFFFF)?;
+            w.u32(3)?;
+            w.u32(1)?;
+            w.u32(3)?;
+
+            w.skippable_chunk(0x0304304B, |mut w| {
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x0304304F, |mut w| {
+                w.u32(3)?;
+                w.u8(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043050, |mut w| {
+                w.u32(3)?;
+                w.u32(1)?;
+                w.u32(3)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043051, |mut w| {
+                w.u32(0)?;
+                w.id(Some("TMStadium"))?;
+                w.string("date=2023-01-13_16_25 git=116238-efed8bf632f GameVersion=3.3.0")?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043052, |mut w| {
+                w.u32(0)?;
+                w.u32(8)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043053, |mut w| {
+                w.u32(3)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043054, |mut w| {
+                let mut bytes = vec![];
+                {
+                    let mut w = Writer::new(&mut bytes);
+                    w.u32(0)?;
+                    w.u32(0)?;
+                    w.u32(0)?;
+                }
+
+                w.u32(1)?;
+                w.u32(0)?;
+                w.u32(bytes.len() as u32)?;
+                w.bytes(&bytes)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043056, |mut w| {
+                w.u32(3)?;
+                w.u32(0)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(300000)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043057, |mut w| {
+                w.u32(5)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043059, |mut w| {
+                w.u32(3)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.f32(20.0)?;
+                w.f32(3.0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x0304305A, |mut w| {
+                w.u32(0)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x0304305B, |mut w| {
+                w.u32(0)?;
+                w.u32(1)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(8)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x0304305C, |mut w| {
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x0304305D, |mut w| {
+                w.u32(1)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x0304305E, |mut w| {
+                w.u32(1)?;
+                w.u32(0)?;
+                w.u32(8)?;
+                w.u32(0)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x0304305F, |mut w| {
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043060, |mut w| {
+                w.u32(0)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043061, |mut w| {
+                w.u32(1)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043062, |mut w| {
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043063, |mut w| {
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043064, |mut w| {
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(4)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043065, |mut w| {
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043067, |mut w| {
+                w.u32(0)?;
+                w.u32(0)?;
+                w.u32(4)?;
+                w.u32(0xFFFFFFFF)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043068, |mut w| {
+                w.u32(1)?;
+
+                Ok(())
+            })?;
+
+            w.skippable_chunk(0x03043069, |mut w| {
+                w.u32(0)?;
+                w.u32(0)?;
+
+                Ok(())
+            })?;
+        }
 
         let mut output = vec![0; lzo1x::worst_compress(body.len())];
-        let compressed_body = lzo1x::compress_to_slice(body, &mut output);
+        let compressed_body = lzo1x::compress_to_slice(&body, &mut output);
 
         let mut w = Writer::new(writer);
 
@@ -525,8 +1091,8 @@ impl Map {
         w.u8(b'R')?;
         w.u32(Self::CLASS_ID)?;
         w.u32(user_data.len() as u32)?;
-        w.bytes(user_data)?;
-        w.u32(num_nodes)?;
+        w.bytes(&user_data)?;
+        w.u32(node_state.num_nodes())?;
         w.u32(0)?;
         w.u32(body.len() as u32)?;
         w.u32(compressed_body.len() as u32)?;
@@ -537,7 +1103,17 @@ impl Map {
 
     /// Write the map to a file at the given `path`.
     ///
-    /// Will create the file if it does not exist, and will truncate it if it does.
+    /// This function will create the file if it does not exist, and will truncate it if it does.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # fn main() -> gbx::error::WriteResult {
+    /// let map = gbx::Map::new();
+    /// map.write_to_file("MyMap.Map.Gbx")?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn write_to_file<P>(&self, path: P) -> WriteResult
     where
         P: AsRef<Path>,
@@ -553,10 +1129,22 @@ impl Map {
     {
         r.u8()?;
         r.u32()?;
-        self.bronze_time = r.u32()?;
-        self.silver_time = r.u32()?;
-        self.gold_time = r.u32()?;
-        self.author_time = r.u32()?;
+        self.bronze_time = match r.u32()? {
+            0xFFFFFFFF => None,
+            time => Some(time),
+        };
+        self.silver_time = match r.u32()? {
+            0xFFFFFFFF => None,
+            time => Some(time),
+        };
+        self.gold_time = match r.u32()? {
+            0xFFFFFFFF => None,
+            time => Some(time),
+        };
+        self.author_time = match r.u32()? {
+            0xFFFFFFFF => None,
+            time => Some(time),
+        };
         self.cost = r.u32()?;
         let is_multilap = r.bool()?;
         r.u32()?;
@@ -709,10 +1297,22 @@ impl Map {
             r.u32()?;
 
             r.chunk_id(0x0305B004)?;
-            self.bronze_time = r.u32()?;
-            self.silver_time = r.u32()?;
-            self.gold_time = r.u32()?;
-            self.author_time = r.u32()?;
+            self.bronze_time = match r.u32()? {
+                0xFFFFFFFF => None,
+                time => Some(time),
+            };
+            self.silver_time = match r.u32()? {
+                0xFFFFFFFF => None,
+                time => Some(time),
+            };
+            self.gold_time = match r.u32()? {
+                0xFFFFFFFF => None,
+                time => Some(time),
+            };
+            self.author_time = match r.u32()? {
+                0xFFFFFFFF => None,
+                time => Some(time),
+            };
             let _author_score = r.u32()?;
 
             r.chunk_id(0x0305B008)?;
