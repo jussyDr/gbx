@@ -1,7 +1,8 @@
-use crate::error::{ReadError, ReadResult};
-use crate::reader::{self, IdState, NodeState, Reader};
+use crate::error::{ReadError, ReadResult, WriteResult};
+use crate::reader::{self, Reader};
+use crate::writer::{self, Writer};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use std::io::{Cursor, Read, Seek};
+use std::io::{Cursor, Read, Seek, Write};
 
 #[derive(PartialEq, TryFromPrimitive, IntoPrimitive)]
 #[repr(u8)]
@@ -39,8 +40,8 @@ pub fn read<T, R>(reader: R) -> ReadResult<T>
 where
     T: Default
         + Class
-        + for<'a, 'b> ReadHeader<&'a [u8], &'b mut IdState, ()>
-        + ReadBody<Cursor<Vec<u8>>, IdState, NodeState>,
+        + for<'a, 'b> ReadHeader<&'a [u8], &'b mut reader::IdState, ()>
+        + ReadBody<Cursor<Vec<u8>>, reader::IdState, reader::NodeState>,
     R: Read,
 {
     let mut node = T::default();
@@ -97,7 +98,7 @@ where
             Ok((chunk_id, size))
         })?;
 
-        let mut id_state = IdState::new();
+        let mut id_state = reader::IdState::new();
         let mut i = 0;
 
         for (chunk_id, size) in user_data_chunks {
@@ -189,6 +190,91 @@ where
             }
         }
     }
+
+    Ok(())
+}
+
+pub trait WriteHeader<W, I, N> {
+    #[allow(clippy::type_complexity)]
+    fn write_header_chunks<'a>() -> &'a [(u32, fn(&Self, Writer<W, I, N>) -> WriteResult)];
+}
+
+pub trait WriteBody<W, I, N> {
+    fn write_body(&self, w: &mut Writer<W, I, N>) -> WriteResult;
+}
+
+pub fn write<T, W>(node: &T, writer: W) -> WriteResult
+where
+    T: Class
+        + for<'a, 'b> WriteHeader<&'a mut Vec<u8>, &'b mut writer::IdState, ()>
+        + for<'a, 'b> WriteBody<&'a mut Vec<u8>, writer::IdState, &'b mut writer::NodeState>,
+    W: Write,
+{
+    let mut user_data = vec![];
+    {
+        let mut w = Writer::new(&mut user_data);
+        let mut id_state = writer::IdState::new();
+        let mut i = 0;
+        let mut chunks = vec![];
+
+        loop {
+            let (chunk_id, write_fn) = T::write_header_chunks()[i];
+
+            let mut chunk = vec![];
+            let w = Writer::with_id_state(&mut chunk, &mut id_state);
+            write_fn(node, w)?;
+            chunks.push((chunk_id, chunk));
+
+            i += 1;
+
+            if i >= T::write_header_chunks().len() {
+                break;
+            }
+        }
+
+        w.u32(chunks.len() as u32)?;
+
+        for (chunk_id, chunk) in &chunks {
+            w.u32(*chunk_id)?;
+            if chunk.len() <= u8::MAX as usize {
+                w.u32(chunk.len() as u32)?;
+            } else {
+                w.u32(chunk.len() as u32 | 0x80000000)?;
+            }
+        }
+
+        for (_, chunk) in chunks {
+            w.bytes(&chunk)?;
+        }
+    }
+
+    let mut body = vec![];
+    let mut node_state = writer::NodeState::new();
+    {
+        let mut w =
+            Writer::with_id_and_node_state(&mut body, writer::IdState::new(), &mut node_state);
+        node.write_body(&mut w)?;
+    }
+
+    let mut output = vec![0; lzo1x::worst_compress(body.len())];
+    let compressed_body = lzo1x::compress_to_slice(&body, &mut output);
+
+    let mut w = Writer::new(writer);
+
+    w.bytes(b"GBX")?;
+    w.u16(6)?;
+    w.u8(b'B')?;
+    w.u8(b'U')?;
+    w.u8(b'C')?;
+    w.u8(b'R')?;
+    w.u32(T::CLASS_ID)?;
+    w.u32(user_data.len() as u32)?;
+    w.bytes(&user_data)?;
+    w.u32(node_state.num_nodes())?;
+    w.u32(0)?;
+    w.u32(body.len() as u32)?;
+    w.u32(compressed_body.len() as u32)?;
+    w.bytes(compressed_body)?;
 
     Ok(())
 }

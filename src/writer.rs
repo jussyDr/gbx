@@ -107,27 +107,6 @@ where
 
         Ok(())
     }
-
-    pub fn skippable_chunk<F>(&mut self, chunk_id: u32, write_fn: F) -> WriteResult
-    where
-        F: Fn(Writer<&mut Vec<u8>, &mut I, &mut N>) -> WriteResult,
-    {
-        let mut chunk = vec![];
-        {
-            let w = Writer::with_id_and_node_state(
-                &mut chunk,
-                &mut self.id_state,
-                &mut self.node_state,
-            );
-
-            write_fn(w)?;
-        }
-
-        self.u32(chunk_id)?;
-        self.bytes(b"PIKS")?;
-        self.u32(chunk.len() as u32)?;
-        self.bytes(&chunk)
-    }
 }
 
 impl<W, I, N> Writer<W, I, N>
@@ -153,6 +132,27 @@ where
             }
             None => self.u32(0xFFFFFFFF),
         }
+    }
+
+    pub fn skippable_chunk<F>(&mut self, chunk_id: u32, write_fn: F) -> WriteResult
+    where
+        F: Fn(Writer<&mut Vec<u8>, &mut IdState, &mut N>) -> WriteResult,
+    {
+        let mut chunk = vec![];
+        {
+            let w = Writer::with_id_and_node_state(
+                &mut chunk,
+                self.id_state.borrow_mut(),
+                self.node_state.borrow_mut(),
+            );
+
+            write_fn(w)?;
+        }
+
+        self.u32(chunk_id)?;
+        self.bytes(b"PIKS")?;
+        self.u32(chunk.len() as u32)?;
+        self.bytes(&chunk)
     }
 }
 
