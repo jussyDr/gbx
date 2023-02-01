@@ -492,8 +492,14 @@ pub struct Map {
     pub thumbnail: Option<Vec<u8>>,
     /// Optional texture mod.
     pub texture_mod: Option<FileRef>,
-    /// Day time based on which the map is lit. [0.0, 1.0]
-    pub day_time: f32,
+    /// Day time which specifies the mood of the map. [0, 65535]
+    ///
+    /// Below are the values of `day_time` for the default moods:
+    ///  - Night: 6554  
+    ///  - Sunrise: 20808
+    ///  - Day: 33041
+    ///  - Sunset: 52920
+    pub day_time: u16,
     /// Size of the map.
     pub size: Vec3<u32>,
     /// All (free) blocks placed inside of the map.
@@ -657,6 +663,18 @@ fn does_deco_have_no_stadium(deco_id: &str) -> bool {
     }
 }
 
+fn day_time_from_deco_id(deco_id: &str) -> u16 {
+    match deco_id {
+        "48x48Sunrise" => 20808,
+        "48x48Day" => 33041,
+        "48x48Sunset" => 52920,
+        "48x48Night" => 6554,
+        "NoStadium48x48Day" => 33041,
+        "Day16x12" => 33041,
+        _ => panic!(),
+    }
+}
+
 impl Map {
     fn read_chunk_03043003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
@@ -671,7 +689,9 @@ impl Map {
         let _map_kind = r.u8()?;
         let _locked = r.u32()?;
         let _password = r.u32()?;
-        self.no_stadium = does_deco_have_no_stadium(r.id()?.as_str());
+        let deco_id = r.id()?;
+        self.no_stadium = does_deco_have_no_stadium(&deco_id);
+        self.day_time = day_time_from_deco_id(&deco_id);
         r.u32()?;
         let _deco_author = r.id()?;
         let _map_origin = r.vec2f32()?;
@@ -740,6 +760,14 @@ impl Map {
         match xml_reader.read_event().unwrap() {
             Event::Empty(e) if e.local_name().as_ref() == b"desc" => {
                 let attributes = xml_attributes_to_map(e.attributes());
+                self.day_time = match attributes.get("mood").unwrap().as_str() {
+                    "Sunrise" => 20808,
+                    "Day" => 33041,
+                    "Sunset" => 52920,
+                    "Night" => 6554,
+                    "Day16x12" => 33041,
+                    _ => panic!(),
+                };
                 self.cost = attributes.get("displaycost").unwrap().parse().unwrap();
             }
             _ => panic!(),
@@ -754,20 +782,26 @@ impl Map {
             Event::Empty(e) if e.local_name().as_ref() == b"times" => {
                 let attributes = xml_attributes_to_map(e.attributes());
 
-                let medal_times = MedalTimes {
-                    bronze: attributes.get("bronze").unwrap().parse().unwrap(),
-                    silver: attributes.get("silver").unwrap().parse().unwrap(),
-                    gold: attributes.get("gold").unwrap().parse().unwrap(),
-                    author: attributes.get("authortime").unwrap().parse().unwrap(),
-                };
+                if attributes.get("bronze").unwrap() != "-1"
+                    && attributes.get("silver").unwrap() != "-1"
+                    && attributes.get("gold").unwrap() != "-1"
+                    && attributes.get("authortime").unwrap() != "-1"
+                {
+                    let medal_times = MedalTimes {
+                        bronze: attributes.get("bronze").unwrap().parse().unwrap(),
+                        silver: attributes.get("silver").unwrap().parse().unwrap(),
+                        gold: attributes.get("gold").unwrap().parse().unwrap(),
+                        author: attributes.get("authortime").unwrap().parse().unwrap(),
+                    };
 
-                match self.validation.as_mut() {
-                    Some(validation) => validation.medal_times = medal_times,
-                    None => {
-                        self.validation = Some(Validation {
-                            medal_times,
-                            ghost: None,
-                        })
+                    match self.validation.as_mut() {
+                        Some(validation) => validation.medal_times = medal_times,
+                        None => {
+                            self.validation = Some(Validation {
+                                medal_times,
+                                ghost: None,
+                            })
+                        }
                     }
                 }
             }
@@ -944,7 +978,9 @@ impl Map {
         r.u32()?;
         r.id()?;
         self.name = r.string()?;
-        self.no_stadium = does_deco_have_no_stadium(r.id()?.as_str());
+        let deco_id = r.id()?;
+        self.no_stadium = does_deco_have_no_stadium(&deco_id);
+        self.day_time = day_time_from_deco_id(&deco_id);
         r.u32()?;
         let _deco_author = r.id()?;
         self.size.x = r.u32()?;
@@ -1202,7 +1238,10 @@ impl Map {
     {
         r.u32()?;
         r.u32()?;
-        self.day_time = r.f32()?;
+        let day_time = r.u32()?;
+        if day_time != 0xFFFFFFFF {
+            self.day_time = day_time as u16;
+        }
         r.u32()?;
         let _dynamic_daylight = r.bool()?;
         let _day_duration = r.u32()?;
