@@ -16,6 +16,19 @@ use std::io::{BufReader, BufWriter, Cursor, Read, Seek, Write};
 use std::ops::Sub;
 use std::path::Path;
 
+/// Medal times of a map.
+#[derive(Clone, Debug)]
+pub struct MedalTimes {
+    /// Bronze medal time in milliseconds.
+    pub bronze: u32,
+    /// Silver medal time in milliseconds.
+    pub silver: u32,
+    /// Gold medal time in milliseconds.
+    pub gold: u32,
+    /// Author medal time in milliseconds.
+    pub author: u32,
+}
+
 /// Cardinal direction of a block.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
@@ -410,25 +423,26 @@ where
 ///
 /// # Examples
 ///
-/// Change the validation status of a map.
+/// Change the validation status and medal times of a map.
 /// ```no_run
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let mut map = gbx::Map::read_from_file("MyMap.Map.Gbx")?;
-/// map.is_validated = true;
+///
+/// map.medal_times = Some(gbx::map::MedalTimes {
+///     bronze: 400,
+///     silver: 300,
+///     gold: 200,
+///     author: 100,
+/// });
+///
 /// map.write_to_file("MyMap.Map.Gbx")?;
 /// # Ok(())
 /// # }
 /// ```
 #[derive(Default)]
 pub struct Map {
-    /// Bronze medal time in milliseconds.
-    pub bronze_time: Option<u32>,
-    /// Silver medal time in milliseconds.
-    pub silver_time: Option<u32>,
-    /// Gold medal time in milliseconds.
-    pub gold_time: Option<u32>,
-    /// Author medal time in milliseconds.
-    pub author_time: Option<u32>,
+    /// Validation medal times of the map.
+    pub medal_times: Option<MedalTimes>,
     /// Display cost of the map.
     pub cost: u32,
     /// Number of checkpoints needed to finish the map.
@@ -445,8 +459,6 @@ pub struct Map {
     pub author_name: String,
     /// Zone of the map author.
     pub author_zone: String,
-    /// `true` if the map has been validated.
-    pub is_validated: bool,
     /// Optional texture mod.
     pub texture_mod: Option<FileRef>,
     /// Size of the map.
@@ -547,29 +559,38 @@ impl Map {
         let writer = BufWriter::new(file);
         self.write_to(writer)
     }
+}
 
+fn read_medal_times<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Option<MedalTimes>>
+where
+    R: Read,
+{
+    match (r.u32()?, r.u32()?, r.u32()?, r.u32()?) {
+        (bronze, silver, gold, author)
+            if bronze != 0xFFFFFFFF
+                && silver != 0xFFFFFFFF
+                && gold != 0xFFFFFFFF
+                && author != 0xFFFFFFFF =>
+        {
+            Ok(Some(MedalTimes {
+                bronze,
+                silver,
+                gold,
+                author,
+            }))
+        }
+        _ => Ok(None),
+    }
+}
+
+impl Map {
     fn read_chunk_03043002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
         r.u8()?;
         r.u32()?;
-        self.bronze_time = match r.u32()? {
-            0xFFFFFFFF => None,
-            time => Some(time),
-        };
-        self.silver_time = match r.u32()? {
-            0xFFFFFFFF => None,
-            time => Some(time),
-        };
-        self.gold_time = match r.u32()? {
-            0xFFFFFFFF => None,
-            time => Some(time),
-        };
-        self.author_time = match r.u32()? {
-            0xFFFFFFFF => None,
-            time => Some(time),
-        };
+        self.medal_times = read_medal_times(r)?;
         self.cost = r.u32()?;
         let is_multilap = r.bool()?;
         r.u32()?;
@@ -846,22 +867,7 @@ impl Map {
             r.u32()?;
 
             r.chunk_id(0x0305B004)?;
-            self.bronze_time = match r.u32()? {
-                0xFFFFFFFF => None,
-                time => Some(time),
-            };
-            self.silver_time = match r.u32()? {
-                0xFFFFFFFF => None,
-                time => Some(time),
-            };
-            self.gold_time = match r.u32()? {
-                0xFFFFFFFF => None,
-                time => Some(time),
-            };
-            self.author_time = match r.u32()? {
-                0xFFFFFFFF => None,
-                time => Some(time),
-            };
+            self.medal_times = read_medal_times(r)?;
             let _author_score = r.u32()?;
 
             r.chunk_id(0x0305B008)?;
@@ -876,7 +882,7 @@ impl Map {
             r.skippable_chunk_id(0x0305B00E)?;
             let _map_type = r.string()?;
             let _map_style = r.string()?;
-            self.is_validated = r.bool()?;
+            let _is_validated = r.bool()?;
 
             r.node_end()?;
 
