@@ -88,6 +88,14 @@ where
 
     impl_write_num!(u8, u16, u32, u64, f32);
 
+    pub fn bool(&mut self, val: bool) -> WriteResult {
+        if val {
+            self.u32(1)
+        } else {
+            self.u32(0)
+        }
+    }
+
     pub fn string(&mut self, string: &str) -> WriteResult {
         self.u32(string.len() as u32)?;
         self.bytes(string.as_bytes())

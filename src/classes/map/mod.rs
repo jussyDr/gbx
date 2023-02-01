@@ -492,6 +492,8 @@ pub struct Map {
     pub thumbnail: Option<Vec<u8>>,
     /// Optional texture mod.
     pub texture_mod: Option<FileRef>,
+    /// Day time based on which the map is lit. [0.0, 1.0]
+    pub day_time: f32,
     /// Size of the map.
     pub size: Vec3<u32>,
     /// All (free) blocks placed inside of the map.
@@ -1176,7 +1178,7 @@ impl Map {
             let embedded_file_ids = r.list(|r| {
                 let id = r.id()?;
                 r.u32()?; // 26
-                r.optional_id()?; // "pTuyJG9STcCN_11BiU3t0Q"
+                let _author_id = r.optional_id()?; // "pTuyJG9STcCN_11BiU3t0Q"
 
                 Ok(id)
             })?;
@@ -1200,10 +1202,10 @@ impl Map {
     {
         r.u32()?;
         r.u32()?;
-        let _time_of_day = r.u32()?;
+        self.day_time = r.f32()?;
         r.u32()?;
-        r.u32()?;
-        r.u32()?;
+        let _dynamic_daylight = r.bool()?;
+        let _day_duration = r.u32()?;
 
         Ok(())
     }
@@ -1330,9 +1332,9 @@ impl Map {
         I: BorrowMut<writer::IdState>,
     {
         w.u8(13)?;
-        w.id(None)?;
+        w.id(Some(&self.uid))?;
         w.u32(26)?;
-        w.id(None)?;
+        w.id(Some(&self.author_uid))?;
         w.string(&self.name)?;
         w.u8(6)?;
         w.u32(0)?;
@@ -1370,7 +1372,60 @@ impl Map {
     where
         W: Write,
     {
-        w.u32(0)?;
+        let mut buf = vec![];
+        let mut xml_writer = quick_xml::Writer::new(&mut buf);
+
+        xml_writer
+            .create_element("header")
+            .with_attribute(("type", "map"))
+            .with_attribute(("exever", "3.3.0"))
+            .with_attribute(("exebuild", "2023-01-13_16_25"))
+            .with_attribute(("title", "TMStadium"))
+            .with_attribute(("lightmap", "8"))
+            .write_inner_content(|xml_writer| {
+                xml_writer
+                    .create_element("ident")
+                    .with_attribute(("uid", self.uid.as_str()))
+                    .with_attribute(("name", self.name.as_str()))
+                    .with_attribute(("author", self.author_uid.as_str()))
+                    .with_attribute(("authorzone", self.author_zone.as_str()))
+                    .write_empty()?;
+
+                let has_ghost_block = self.blocks.iter().any(|block| match block {
+                    BlockType::Normal(block) => block.is_ghost,
+                    BlockType::Free(_) => false,
+                });
+
+                xml_writer
+                    .create_element("desc")
+                    .with_attribute(("envir", "Stadium"))
+                    .with_attribute(("mood", "Day"))
+                    .with_attribute(("type", "Race"))
+                    .with_attribute(("maptype", "TrackMania\\TM_Race"))
+                    .with_attribute(("mapstyle", ""))
+                    .with_attribute((
+                        "validated",
+                        (self.validation.is_some() as u8).to_string().as_str(),
+                    ))
+                    .with_attribute((
+                        "nblaps",
+                        self.num_laps.unwrap_or_default().to_string().as_str(),
+                    ))
+                    .with_attribute(("displaycost", self.cost.to_string().as_str()))
+                    .with_attribute(("mod", ""))
+                    .with_attribute((
+                        "hasghostblocks",
+                        (has_ghost_block as u8).to_string().as_str(),
+                    ))
+                    .write_empty()?;
+
+                xml_writer.create_element("playermodel").write_empty()?;
+
+                Ok(())
+            })
+            .unwrap();
+
+        w.string(&String::from_utf8(buf).unwrap())?;
 
         Ok(())
     }
@@ -1381,7 +1436,7 @@ impl Map {
     {
         match self.thumbnail {
             Some(ref thumbnail) => {
-                w.u32(1)?;
+                w.bool(true)?;
                 w.u32(thumbnail.len() as u32)?;
                 w.bytes(b"<Thumbnail.jpg>")?;
                 w.bytes(thumbnail)?;
@@ -1390,7 +1445,7 @@ impl Map {
                 w.string("")?;
                 w.bytes(b"</Comments>")?;
             }
-            None => w.u32(0)?,
+            None => w.bool(false)?,
         }
 
         Ok(())
@@ -1402,9 +1457,9 @@ impl Map {
     {
         w.u32(1)?;
         w.u32(0)?;
-        w.u32(0)?;
-        w.u32(0)?;
-        w.u32(0)?;
+        w.string(&self.author_uid)?;
+        w.string(&self.author_name)?;
+        w.string(&self.author_zone)?;
         w.u32(0)?;
 
         Ok(())
