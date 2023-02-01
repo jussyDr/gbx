@@ -44,10 +44,14 @@ pub struct Validation {
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum Direction {
+    /// North.
     #[default]
     North,
+    /// East.
     East,
+    /// South.
     South,
+    /// West.
     West,
 }
 
@@ -279,7 +283,7 @@ where
 /// A block inside of a `Map`.
 #[derive(Default, Debug)]
 pub struct Block {
-    /// Id of the block's model.
+    /// ID of the block's model.
     pub model_id: RcStr,
     /// Direction of the block.
     pub dir: Direction,
@@ -304,7 +308,7 @@ pub struct Block {
 /// A free block inside of a `Map`.
 #[derive(Default, Debug)]
 pub struct FreeBlock {
-    /// Id of the block's model.
+    /// ID of the block's model.
     pub model_id: RcStr,
     /// Skin of the block, e.g. for signs.
     pub skin: Option<Box<Skin>>,
@@ -342,7 +346,7 @@ impl Default for BlockType {
 /// An item inside of a `Map`.
 #[derive(Default)]
 pub struct Item {
-    /// Id of the item's model.
+    /// ID of the item's model.
     pub model_id: RcStr,
     /// Yaw rotation of the item.
     pub yaw: f32,
@@ -429,6 +433,16 @@ where
     }
 }
 
+/// Files embedded in a map.
+pub struct EmbeddedFiles {
+    /// Ids of the files embedded in the map.
+    ///
+    /// The length is equal to the number of files in the `embedded_files` ZIP archive.
+    pub embedded_file_ids: Vec<RcStr>,
+    /// All files embedded in the map as a raw ZIP archive.
+    pub embedded_files: Vec<u8>,
+}
+
 /// Type corresponding to the file extension `Map.Gbx`.
 ///
 /// # Examples
@@ -454,7 +468,17 @@ where
 /// ```
 #[derive(Default)]
 pub struct Map {
-    /// Validation of the map.
+    /// Name of the map.
+    pub name: String,
+    /// Unique ID of the map.
+    pub uid: RcStr,
+    /// Name of the map author.
+    pub author_name: String,
+    /// Unique ID of the map author.
+    pub author_uid: RcStr,
+    /// Zone of the map author.
+    pub author_zone: String,
+    /// Optional validation of the map.
     pub validation: Option<Validation>,
     /// Display cost of the map.
     pub cost: u32,
@@ -462,20 +486,10 @@ pub struct Map {
     pub num_cps: u32,
     /// Number of laps if the map is multilap.
     pub num_laps: Option<u32>,
-    /// Unique id of the map.
-    pub uid: RcStr,
-    /// Unique id of the map author.
-    pub author_uid: RcStr,
-    /// Name of the map.
-    pub name: String,
     /// `true` if the map has no stadium.
     pub no_stadium: bool,
     /// Optional thumbnail of the map as raw JPEG.
     pub thumbnail: Option<Vec<u8>>,
-    /// Name of the map author.
-    pub author_name: String,
-    /// Zone of the map author.
-    pub author_zone: String,
     /// Optional texture mod.
     pub texture_mod: Option<FileRef>,
     /// Size of the map.
@@ -500,12 +514,8 @@ pub struct Map {
     pub end_race_media: Option<media::ClipGroup>,
     /// Optional MediaTracker clip for the map ambiance.
     pub ambiance_media: Option<media::Clip>,
-    /// Ids of the files embedded in the map.
-    ///
-    /// The length is equal to the number of files in the `embedded_files` ZIP archive.
-    pub embedded_file_ids: Vec<RcStr>,
-    /// All files embedded in the map as a raw ZIP archive.
-    pub embedded_files: Option<Vec<u8>>,
+    /// Files embedded in the map.
+    pub embedded_files: Option<EmbeddedFiles>,
 }
 
 impl Map {
@@ -881,7 +891,10 @@ impl Map {
             r.skip_chunk(0x0305B00A)?;
 
             r.chunk_id(0x0305B00D)?;
-            let _validation_ghost = r.optional_node(0x03092000, Ghost::read)?;
+            let ghost = r.optional_node_owned(0x03092000, Ghost::read)?;
+            if let Some(validation) = self.validation.as_mut() {
+                validation.ghost = ghost;
+            }
 
             r.skippable_chunk_id(0x0305B00E)?;
             let _map_type = r.string()?;
@@ -1017,10 +1030,8 @@ impl Map {
     where
         R: Read,
     {
-        r.u32()?;
-        r.u32()?;
-        r.u32()?;
-        r.u32()?;
+        let _map_origin = r.vec2f32()?;
+        let _map_target = r.vec2f32()?;
 
         Ok(())
     }
@@ -1162,7 +1173,7 @@ impl Map {
         let size = r.u32()?;
         {
             let mut r = Reader::with_id_state(r.take(size as u64), reader::IdState::new());
-            self.embedded_file_ids = r.list(|r| {
+            let embedded_file_ids = r.list(|r| {
                 let id = r.id()?;
                 r.u32()?; // 26
                 r.optional_id()?; // "pTuyJG9STcCN_11BiU3t0Q"
@@ -1172,7 +1183,10 @@ impl Map {
             let size = r.u32()?;
             if size > 0 {
                 let bytes = r.bytes(size as usize)?;
-                self.embedded_files = Some(bytes);
+                self.embedded_files = Some(EmbeddedFiles {
+                    embedded_file_ids,
+                    embedded_files: bytes,
+                });
             }
             r.u32()?; // 0
         }
