@@ -8,16 +8,18 @@ use crate::types::{RcStr, Vec3};
 use crate::writer::{self, Writer};
 use crate::{gbx, FileRef, Ghost};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
 use std::borrow::BorrowMut;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Cursor, Read, Seek, Write};
 use std::ops::Sub;
 use std::path::Path;
 
 /// Medal times of a map.
-#[derive(Clone, Debug)]
+#[derive(Clone, Hash, Debug)]
 pub struct MedalTimes {
     /// Bronze medal time in milliseconds.
     pub bronze: u32,
@@ -449,6 +451,10 @@ pub struct Map {
     pub num_cps: u32,
     /// Number of laps if the map is multilap.
     pub num_laps: Option<u32>,
+    /// Unique id of the map.
+    pub uid: RcStr,
+    /// Unique id of the map author.
+    pub author_uid: RcStr,
     /// Name of the map.
     pub name: String,
     /// `true` if the map has no stadium.
@@ -609,7 +615,7 @@ impl Map {
     }
 }
 
-fn deco_has_no_stadium(deco_id: &str) -> bool {
+fn does_deco_have_no_stadium(deco_id: &str) -> bool {
     match deco_id {
         "48x48Sunrise" => false,
         "48x48Day" => false,
@@ -628,14 +634,14 @@ impl Map {
         I: BorrowMut<reader::IdState>,
     {
         r.u8()?;
-        r.id()?;
+        self.uid = r.id()?;
         r.u32()?;
-        r.id()?;
+        self.author_uid = r.id()?;
         self.name = r.string()?;
         r.u8()?;
         r.u32()?;
         r.u32()?;
-        self.no_stadium = deco_has_no_stadium(r.id()?.as_str());
+        self.no_stadium = does_deco_have_no_stadium(r.id()?.as_str());
         r.u32()?;
         let _deco_author = r.id()?;
         r.u32()?;
@@ -663,7 +669,21 @@ impl Map {
 
         Ok(())
     }
+}
 
+fn xml_attributes_to_map(attributes: Attributes) -> HashMap<String, String> {
+    attributes
+        .map(|attribute| {
+            let attribute = attribute.unwrap();
+            (
+                String::from_utf8(attribute.key.local_name().as_ref().to_vec()).unwrap(),
+                attribute.unescape_value().unwrap().into_owned(),
+            )
+        })
+        .collect()
+}
+
+impl Map {
     fn read_chunk_03043005<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
@@ -673,90 +693,45 @@ impl Map {
 
         match xml_reader.read_event().unwrap() {
             Event::Start(e) if e.local_name().as_ref() == b"header" => {
-                for attribute in e.attributes() {
-                    let attribute = attribute.unwrap();
-
-                    match attribute.key.as_ref() {
-                        b"type" => {}
-                        b"exever" => {}
-                        b"exebuild" => {}
-                        b"title" => {}
-                        b"lightmap" => {}
-                        _ => panic!(),
-                    }
-                }
+                let _attributes = xml_attributes_to_map(e.attributes());
             }
             _ => panic!(),
         }
 
         match xml_reader.read_event().unwrap() {
             Event::Empty(e) if e.local_name().as_ref() == b"ident" => {
-                for attribute in e.attributes() {
-                    let attribute = attribute.unwrap();
-
-                    match attribute.key.as_ref() {
-                        b"uid" => {}
-                        b"name" => {}
-                        b"author" => {}
-                        b"authorzone" => {}
-                        _ => panic!(),
-                    }
-                }
+                let attributes = xml_attributes_to_map(e.attributes());
+                self.uid = RcStr::new(attributes.get("uid").unwrap().clone());
+                self.name = attributes.get("name").unwrap().clone();
+                self.author_uid = RcStr::new(attributes.get("author").unwrap().clone());
+                self.author_zone = attributes.get("authorzone").unwrap().clone();
             }
             _ => panic!(),
         }
 
         match xml_reader.read_event().unwrap() {
             Event::Empty(e) if e.local_name().as_ref() == b"desc" => {
-                for attribute in e.attributes() {
-                    let attribute = attribute.unwrap();
-
-                    match attribute.key.as_ref() {
-                        b"envir" => {}
-                        b"mood" => {}
-                        b"type" => {}
-                        b"maptype" => {}
-                        b"mapstyle" => {}
-                        b"validated" => {}
-                        b"nblaps" => {}
-                        b"displaycost" => {}
-                        b"mod" => {}
-                        b"hasghostblocks" => {}
-                        _ => panic!(),
-                    }
-                }
+                let attributes = xml_attributes_to_map(e.attributes());
+                self.cost = attributes.get("displaycost").unwrap().parse().unwrap();
             }
             _ => panic!(),
         }
 
         match xml_reader.read_event().unwrap() {
-            Event::Empty(e) if e.local_name().as_ref() == b"playermodel" => {
-                for attribute in e.attributes() {
-                    let attribute = attribute.unwrap();
-
-                    match attribute.key.as_ref() {
-                        b"id" => {}
-                        _ => panic!(),
-                    }
-                }
-            }
+            Event::Empty(e) if e.local_name().as_ref() == b"playermodel" => {}
             _ => panic!(),
         }
 
         match xml_reader.read_event().unwrap() {
             Event::Empty(e) if e.local_name().as_ref() == b"times" => {
-                for attribute in e.attributes() {
-                    let attribute = attribute.unwrap();
+                let attributes = xml_attributes_to_map(e.attributes());
 
-                    match attribute.key.as_ref() {
-                        b"bronze" => {}
-                        b"silver" => {}
-                        b"gold" => {}
-                        b"authortime" => {}
-                        b"authorscore" => {}
-                        _ => panic!(),
-                    }
-                }
+                self.medal_times = Some(MedalTimes {
+                    bronze: attributes.get("bronze").unwrap().parse().unwrap(),
+                    silver: attributes.get("silver").unwrap().parse().unwrap(),
+                    gold: attributes.get("gold").unwrap().parse().unwrap(),
+                    author: attributes.get("authortime").unwrap().parse().unwrap(),
+                })
             }
             _ => panic!(),
         }
@@ -769,15 +744,7 @@ impl Map {
         loop {
             match xml_reader.read_event().unwrap() {
                 Event::Empty(e) if e.local_name().as_ref() == b"dep" => {
-                    for attribute in e.attributes() {
-                        let attribute = attribute.unwrap();
-
-                        match attribute.key.as_ref() {
-                            b"file" => {}
-                            b"url" => {}
-                            _ => panic!(),
-                        }
-                    }
+                    let _attributes = xml_attributes_to_map(e.attributes());
                 }
                 Event::End(e) if e.local_name().as_ref() == b"deps" => break,
                 _ => panic!(),
@@ -925,7 +892,7 @@ impl Map {
         r.u32()?;
         r.id()?;
         self.name = r.string()?;
-        self.no_stadium = deco_has_no_stadium(r.id()?.as_str());
+        self.no_stadium = does_deco_have_no_stadium(r.id()?.as_str());
         r.u32()?;
         let _deco_author = r.id()?;
         self.size.x = r.u32()?;
