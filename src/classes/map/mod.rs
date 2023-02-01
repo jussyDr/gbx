@@ -492,7 +492,7 @@ pub struct Map {
     pub thumbnail: Option<Vec<u8>>,
     /// Optional texture mod.
     pub texture_mod: Option<FileRef>,
-    /// Day time which specifies the mood of the map. [0, 65535]
+    /// Day time which specifies the mood of the map.
     ///
     /// Below are the values of `day_time` for the default moods:
     ///  - Night: 6554  
