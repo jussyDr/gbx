@@ -157,6 +157,13 @@ where
         self.repeat(len as usize, read_fn)
     }
 
+    pub fn vec2f32(&mut self) -> ReadResult<[f32; 2]> {
+        let x = self.f32()?;
+        let y = self.f32()?;
+
+        Ok([x, y])
+    }
+
     pub fn vec3u8(&mut self) -> ReadResult<Vec3<u8>> {
         let x = self.u8()?;
         let y = self.u8()?;

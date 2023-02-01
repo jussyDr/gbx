@@ -31,6 +31,14 @@ pub struct MedalTimes {
     pub author: u32,
 }
 
+/// Map validation.
+pub struct Validation {
+    /// Medal times of the map.
+    pub medal_times: MedalTimes,
+    /// Optional validation ghost.
+    pub ghost: Option<Ghost>,
+}
+
 /// Cardinal direction of a block.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
@@ -425,16 +433,19 @@ where
 ///
 /// # Examples
 ///
-/// Change the validation status and medal times of a map.
+/// Change the validation of a map.
 /// ```no_run
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let mut map = gbx::Map::read_from_file("MyMap.Map.Gbx")?;
 ///
-/// map.medal_times = Some(gbx::map::MedalTimes {
-///     bronze: 400,
-///     silver: 300,
-///     gold: 200,
-///     author: 100,
+/// map.validation = Some(gbx::map::Validation {
+///     medal_times: gbx::map::MedalTimes {
+///         bronze: 400,
+///         silver: 300,
+///         gold: 200,
+///         author: 100,
+///     },
+///     ghost: None,
 /// });
 ///
 /// map.write_to_file("MyMap.Map.Gbx")?;
@@ -443,8 +454,8 @@ where
 /// ```
 #[derive(Default)]
 pub struct Map {
-    /// Validation medal times of the map.
-    pub medal_times: Option<MedalTimes>,
+    /// Validation of the map.
+    pub validation: Option<Validation>,
     /// Display cost of the map.
     pub cost: u32,
     /// Number of checkpoints needed to finish the map.
@@ -596,20 +607,27 @@ impl Map {
     {
         r.u8()?;
         r.u32()?;
-        self.medal_times = read_medal_times(r)?;
+        match read_medal_times(r)? {
+            Some(medal_times) => match self.validation.as_mut() {
+                Some(validation) => validation.medal_times = medal_times,
+                None => {
+                    self.validation = Some(Validation {
+                        medal_times,
+                        ghost: None,
+                    })
+                }
+            },
+            None => self.validation = None,
+        }
         self.cost = r.u32()?;
         let is_multilap = r.bool()?;
         r.u32()?;
         r.u32()?;
         r.u32()?;
-        r.u32()?;
+        let _editor_mode = r.u32()?;
         r.u32()?;
         self.num_cps = r.u32()?;
-        if is_multilap {
-            self.num_laps = Some(r.u32()?)
-        } else {
-            r.u32()?;
-        }
+        self.num_laps = is_multilap.then_some(r.u32()?);
 
         Ok(())
     }
@@ -638,25 +656,23 @@ impl Map {
         r.u32()?;
         self.author_uid = r.id()?;
         self.name = r.string()?;
-        r.u8()?;
-        r.u32()?;
-        r.u32()?;
+        let _map_kind = r.u8()?;
+        let _locked = r.u32()?;
+        let _password = r.u32()?;
         self.no_stadium = does_deco_have_no_stadium(r.id()?.as_str());
         r.u32()?;
         let _deco_author = r.id()?;
-        r.u32()?;
-        r.u32()?;
-        r.u32()?;
-        r.u32()?;
+        let _map_origin = r.vec2f32()?;
+        let _map_target = r.vec2f32()?;
         r.u32()?;
         r.u32()?;
         r.u32()?;
         r.u32()?;
         let _map_type = r.string()?;
         let _map_style = r.string()?;
-        r.u64()?;
-        r.u8()?;
-        let _title_name = r.id()?;
+        let _lightmap_cache_uid = r.u64()?;
+        let _lightmap_version = r.u8()?;
+        let _title_id = r.id()?;
 
         Ok(())
     }
@@ -726,12 +742,22 @@ impl Map {
             Event::Empty(e) if e.local_name().as_ref() == b"times" => {
                 let attributes = xml_attributes_to_map(e.attributes());
 
-                self.medal_times = Some(MedalTimes {
+                let medal_times = MedalTimes {
                     bronze: attributes.get("bronze").unwrap().parse().unwrap(),
                     silver: attributes.get("silver").unwrap().parse().unwrap(),
                     gold: attributes.get("gold").unwrap().parse().unwrap(),
                     author: attributes.get("authortime").unwrap().parse().unwrap(),
-                })
+                };
+
+                match self.validation.as_mut() {
+                    Some(validation) => validation.medal_times = medal_times,
+                    None => {
+                        self.validation = Some(Validation {
+                            medal_times,
+                            ghost: None,
+                        })
+                    }
+                }
             }
             _ => panic!(),
         }
@@ -774,7 +800,7 @@ impl Map {
             self.thumbnail = Some(r.bytes(thumbnail_size as usize)?);
             r.bytes(16)?;
             r.bytes(10)?;
-            let _map_comments = r.string()?;
+            let _comments = r.string()?;
             r.bytes(11)?;
         }
 
@@ -786,11 +812,11 @@ impl Map {
         R: Read,
     {
         r.u32()?;
-        r.u32()?;
-        let _author_login = r.string()?;
+        let _author_version = r.u32()?;
+        self.author_uid = RcStr::new(r.string()?);
         self.author_name = r.string()?;
         self.author_zone = r.string()?;
-        r.u32()?;
+        let _author_extra_info = r.u32()?;
 
         Ok(())
     }
@@ -800,7 +826,7 @@ impl Map {
         R: Read,
         I: BorrowMut<reader::IdState>,
     {
-        r.optional_id()?;
+        let _player_model_id = r.optional_id()?;
         r.u32()?;
         r.u32()?;
 
@@ -834,7 +860,18 @@ impl Map {
             r.u32()?;
 
             r.chunk_id(0x0305B004)?;
-            self.medal_times = read_medal_times(r)?;
+            match read_medal_times(r)? {
+                Some(medal_times) => match self.validation.as_mut() {
+                    Some(validation) => validation.medal_times = medal_times,
+                    None => {
+                        self.validation = Some(Validation {
+                            medal_times,
+                            ghost: None,
+                        })
+                    }
+                },
+                None => self.validation = None,
+            }
             let _author_score = r.u32()?;
 
             r.chunk_id(0x0305B008)?;
@@ -1042,7 +1079,7 @@ impl Map {
     {
         r.u32()?;
         r.u32()?;
-        let _author_login = r.string()?;
+        self.author_uid = RcStr::new(r.string()?);
         self.author_name = r.string()?;
         self.author_zone = r.string()?;
         r.u32()?;
@@ -1111,9 +1148,7 @@ impl Map {
         self.in_game_media = r.optional_node_owned(0x0307A000, media::ClipGroup::read)?;
         self.end_race_media = r.optional_node_owned(0x0307A000, media::ClipGroup::read)?;
         self.ambiance_media = r.optional_node_owned(0x03079000, media::Clip::read)?;
-        r.u32()?;
-        r.u32()?;
-        r.u32()?;
+        let _trigger_size = r.vec3u32()?;
 
         Ok(())
     }
