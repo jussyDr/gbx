@@ -8,6 +8,7 @@ use crate::types::{RcStr, Vec3};
 use crate::writer::{self, Writer};
 use crate::{gbx, FileRef, Ghost};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use quick_xml::events::Event;
 use std::borrow::BorrowMut;
 use std::cmp::Ordering;
 use std::fs::File;
@@ -646,7 +647,131 @@ impl Map {
     where
         R: Read,
     {
-        let _xml = r.string()?;
+        let xml = r.string()?;
+        let mut xml_reader = quick_xml::Reader::from_str(&xml);
+
+        match xml_reader.read_event().unwrap() {
+            Event::Start(e) if e.local_name().as_ref() == b"header" => {
+                for attribute in e.attributes() {
+                    let attribute = attribute.unwrap();
+
+                    match attribute.key.as_ref() {
+                        b"type" => {}
+                        b"exever" => {}
+                        b"exebuild" => {}
+                        b"title" => {}
+                        b"lightmap" => {}
+                        _ => panic!(),
+                    }
+                }
+            }
+            _ => panic!(),
+        }
+
+        match xml_reader.read_event().unwrap() {
+            Event::Empty(e) if e.local_name().as_ref() == b"ident" => {
+                for attribute in e.attributes() {
+                    let attribute = attribute.unwrap();
+
+                    match attribute.key.as_ref() {
+                        b"uid" => {}
+                        b"name" => {}
+                        b"author" => {}
+                        b"authorzone" => {}
+                        _ => panic!(),
+                    }
+                }
+            }
+            _ => panic!(),
+        }
+
+        match xml_reader.read_event().unwrap() {
+            Event::Empty(e) if e.local_name().as_ref() == b"desc" => {
+                for attribute in e.attributes() {
+                    let attribute = attribute.unwrap();
+
+                    match attribute.key.as_ref() {
+                        b"envir" => {}
+                        b"mood" => {}
+                        b"type" => {}
+                        b"maptype" => {}
+                        b"mapstyle" => {}
+                        b"validated" => {}
+                        b"nblaps" => {}
+                        b"displaycost" => {}
+                        b"mod" => {}
+                        b"hasghostblocks" => {}
+                        _ => panic!(),
+                    }
+                }
+            }
+            _ => panic!(),
+        }
+
+        match xml_reader.read_event().unwrap() {
+            Event::Empty(e) if e.local_name().as_ref() == b"playermodel" => {
+                for attribute in e.attributes() {
+                    let attribute = attribute.unwrap();
+
+                    match attribute.key.as_ref() {
+                        b"id" => {}
+                        _ => panic!(),
+                    }
+                }
+            }
+            _ => panic!(),
+        }
+
+        match xml_reader.read_event().unwrap() {
+            Event::Empty(e) if e.local_name().as_ref() == b"times" => {
+                for attribute in e.attributes() {
+                    let attribute = attribute.unwrap();
+
+                    match attribute.key.as_ref() {
+                        b"bronze" => {}
+                        b"silver" => {}
+                        b"gold" => {}
+                        b"authortime" => {}
+                        b"authorscore" => {}
+                        _ => panic!(),
+                    }
+                }
+            }
+            _ => panic!(),
+        }
+
+        match xml_reader.read_event().unwrap() {
+            Event::Start(e) if e.local_name().as_ref() == b"deps" => {}
+            _ => panic!(),
+        }
+
+        loop {
+            match xml_reader.read_event().unwrap() {
+                Event::Empty(e) if e.local_name().as_ref() == b"dep" => {
+                    for attribute in e.attributes() {
+                        let attribute = attribute.unwrap();
+
+                        match attribute.key.as_ref() {
+                            b"file" => {}
+                            b"url" => {}
+                            _ => panic!(),
+                        }
+                    }
+                }
+                Event::End(e) if e.local_name().as_ref() == b"deps" => break,
+                _ => panic!(),
+            }
+        }
+
+        match xml_reader.read_event().unwrap() {
+            Event::End(e) if e.local_name().as_ref() == b"header" => {}
+            _ => panic!(),
+        }
+
+        match xml_reader.read_event().unwrap() {
+            Event::Eof => {}
+            _ => panic!(),
+        }
 
         Ok(())
     }
@@ -1186,7 +1311,7 @@ impl Map {
         w.id(None)?;
         w.u32(26)?;
         w.id(None)?;
-        w.string("")?;
+        w.string(&self.name)?;
         w.u8(6)?;
         w.u32(0)?;
         w.u32(0)?;
@@ -1223,7 +1348,7 @@ impl Map {
     where
         W: Write,
     {
-        w.string("")?;
+        w.u32(0)?;
 
         Ok(())
     }
@@ -1232,7 +1357,19 @@ impl Map {
     where
         W: Write,
     {
-        w.u32(0)?;
+        match self.thumbnail {
+            Some(ref thumbnail) => {
+                w.u32(1)?;
+                w.u32(thumbnail.len() as u32)?;
+                w.bytes(b"<Thumbnail.jpg>")?;
+                w.bytes(thumbnail)?;
+                w.bytes(b"</Thumbnail.jpg>")?;
+                w.bytes(b"<Comments>")?;
+                w.string("")?;
+                w.bytes(b"</Comments>")?;
+            }
+            None => w.u32(0)?,
+        }
 
         Ok(())
     }
@@ -1465,7 +1602,7 @@ where
         w.id(None)?;
         w.u32(26)?;
         w.id(None)?;
-        w.string("")?;
+        w.string(&self.name)?;
         w.id(Some("48x48Day"))?;
         w.u32(26)?;
         w.id(Some("Nadeo"))?;
