@@ -1,12 +1,11 @@
 /// Media block key types.
 pub mod key;
 
-use integer_enum::TryFromInteger;
-
 use crate::error::ReadResult;
 use crate::ghost::EntityRecord;
 use crate::reader::{self, Reader};
 use crate::{FileRef, InternalFileRef, Rgb};
+use int_enum::TryFromInteger;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 

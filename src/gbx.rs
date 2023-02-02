@@ -1,7 +1,7 @@
 use crate::error::{ReadError, ReadResult, WriteResult};
 use crate::reader::{self, Reader};
 use crate::writer::{self, Writer};
-use integer_enum::{IntoInteger, TryFromInteger};
+use int_enum::{IntoInteger, TryFromInteger};
 use std::io::{Cursor, Read, Seek, Write};
 
 #[derive(PartialEq, TryFromInteger, IntoInteger)]

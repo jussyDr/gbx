@@ -7,7 +7,7 @@ use crate::reader::{self, Reader};
 use crate::types::{Id, Vec3};
 use crate::writer::{self, Writer};
 use crate::{gbx, FileRef, Ghost};
-use integer_enum::{IntoInteger, TryFromInteger};
+use int_enum::{IntoInteger, TryFromInteger};
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
 use std::borrow::BorrowMut;
