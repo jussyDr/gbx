@@ -63,7 +63,7 @@ where
     }
 
     let ref_table_compression = Compression::try_from(r.u8()?)
-        .map_err(|_err| ReadError(String::from("unknown compression")))?;
+        .map_err(|_err| ReadError(String::from("invalid compression type")))?;
 
     if matches!(ref_table_compression, Compression::Compressed) {
         return Err(ReadError(String::from(
@@ -72,7 +72,7 @@ where
     }
 
     let body_compression = Compression::try_from(r.u8()?)
-        .map_err(|_err| ReadError(String::from("unknown compression")))?;
+        .map_err(|_err| ReadError(String::from("invalid compression type")))?;
 
     match r.u8()? {
         b'R' => {}
