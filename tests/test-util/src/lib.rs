@@ -8,7 +8,7 @@ use std::path::Path;
 pub fn fetch_file(url: &str, hash_base64: &str, dir: &str) -> Result<File> {
     let path = Path::new(dir).join(hash_base64);
 
-    let file = if path.try_exists()? {
+    let file = if path.exists() {
         let mut file = File::open(&path)?;
         let mut bytes = vec![];
         file.read_to_end(&mut bytes)?;
