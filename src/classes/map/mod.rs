@@ -53,14 +53,14 @@ pub struct Validation {
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum Direction {
-    /// North.
+    /// Northern cardinal direction.
     #[default]
     North,
-    /// East.
+    /// Eastern cardinal direction.
     East,
-    /// South.
+    /// Southern cardinal direction.
     South,
-    /// West.
+    /// Western cardinal direction.
     West,
 }
 
@@ -77,12 +77,18 @@ impl Sub for Direction {
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum Color {
+    /// Default color.
     #[default]
     Default,
+    /// White color.
     White,
+    /// Green color.
     Green,
+    /// Blue color.
     Blue,
+    /// Red color.
     Red,
+    /// Black color.
     Black,
 }
 
@@ -90,13 +96,20 @@ pub enum Color {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger)]
 #[repr(u8)]
 pub enum LightmapQuality {
+    /// Normal lightmap quality.
     #[default]
     Normal,
+    /// High lightmap quality.
     High,
+    /// Very high lightmap quality.
     VeryHigh,
+    /// Highest lightmap quality.
     Highest,
+    /// Low lightmap quality.
     Low,
+    /// Very low lightmap quality.
     VeryLow,
+    /// Lowest lightmap quality.
     Lowest,
 }
 
@@ -127,14 +140,22 @@ impl Ord for LightmapQuality {
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum PhaseOffset {
+    /// No phase offset.
     #[default]
     None,
+    /// 1/8th phase offset.
     One8th,
+    /// 2/8th phase offset.
     Two8th,
+    /// 3/8th phase offset.
     Three8th,
+    /// 4/8th phase offset.
     Four8th,
+    /// 5/8th phase offset.
     Five8th,
+    /// 6/8th phase offset.
     Six8th,
+    /// 7/8th phase offset.
     Seven8th,
 }
 
@@ -214,27 +235,27 @@ pub enum RoyalOrder {
 #[derive(Clone, Default, Debug)]
 #[non_exhaustive]
 pub enum WaypointProperty {
-    /// Checkpoint.
+    /// Checkpoint waypoint.
     #[default]
     Checkpoint,
-    /// Linked checkpoint.
+    /// Linked checkpoint waypoint.
     LinkedCheckpoint {
         /// Group number.
         group: u32,
     },
-    /// Start.
+    /// Start waypoint.
     Start {
-        /// Order for royal.
+        /// Optional order for royal.
         order: Option<RoyalOrder>,
     },
-    /// Finish.
+    /// Finish waypoint.
     Finish {
-        /// Order for royal.
+        /// Optional order for royal.
         order: Option<RoyalOrder>,
     },
-    /// Multilap.
+    /// Multilap waypoint.
     StartFinish {
-        /// Order for royal.
+        /// Optional order for royal.
         order: Option<RoyalOrder>,
     },
 }
