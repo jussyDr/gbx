@@ -49,38 +49,34 @@ where
     let mut r = Reader::new(reader);
 
     if r.bytes(3)? != b"GBX" {
-        return Err(ReadError::Generic(String::from("bad magic")));
+        return Err(ReadError(String::from("bad magic")));
     }
 
     match r.u16()? {
         6 => {}
-        _ => return Err(ReadError::Generic(String::from("unsupported file version"))),
+        _ => return Err(ReadError(String::from("unsupported file version"))),
     }
 
     match r.u8()? {
         b'B' => {}
-        _ => {
-            return Err(ReadError::Generic(String::from(
-                "file format not supported",
-            )))
-        }
+        _ => return Err(ReadError(String::from("file format not supported"))),
     }
 
     let ref_table_compression = Compression::try_from(r.u8()?)
-        .map_err(|_err| ReadError::Generic(String::from("unknown compression")))?;
+        .map_err(|_err| ReadError(String::from("unknown compression")))?;
 
     if matches!(ref_table_compression, Compression::Compressed) {
-        return Err(ReadError::Generic(String::from(
+        return Err(ReadError(String::from(
             "compressed ref table not supported",
         )));
     }
 
     let body_compression = Compression::try_from(r.u8()?)
-        .map_err(|_err| ReadError::Generic(String::from("unknown compression")))?;
+        .map_err(|_err| ReadError(String::from("unknown compression")))?;
 
     match r.u8()? {
         b'R' => {}
-        _unknown => return Err(ReadError::Generic(String::from("bad unknown byte"))),
+        _unknown => return Err(ReadError(String::from("bad unknown byte"))),
     }
 
     r.class_id(T::CLASS_ID)?;
@@ -107,7 +103,7 @@ where
 
                 let (header_chunk_id, read_fn) = header_chunks
                     .get(i)
-                    .ok_or_else(|| ReadError::Generic(format!("Unknown chunk {chunk_id:08X}")))?;
+                    .ok_or_else(|| ReadError(format!("unknown chunk {chunk_id:08X}")))?;
 
                 if *header_chunk_id == chunk_id {
                     let bytes = r.bytes(size as usize)?;
@@ -133,7 +129,8 @@ where
         let compressed_body = r.bytes(compressed_body_size as usize)?;
         let mut body = vec![0; body_size as usize];
 
-        lzo1x::decompress_to_slice(&compressed_body, &mut body)?;
+        lzo1x::decompress_to_slice(&compressed_body, &mut body)
+            .map_err(|err| ReadError(format!("{err}")))?;
 
         let mut r = Reader::with_id_and_node_state(
             Cursor::new(body),
@@ -168,7 +165,7 @@ where
 
             let (body_chunk_id, read_chunk) = body_chunks
                 .get(i)
-                .ok_or_else(|| ReadError::Generic(format!("Unknown chunk {chunk_id:08X}")))?;
+                .ok_or_else(|| ReadError(format!("unknown chunk {chunk_id:08X}")))?;
 
             if *body_chunk_id == chunk_id {
                 match read_chunk {

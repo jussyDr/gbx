@@ -1,4 +1,4 @@
-use crate::error::WriteResult;
+use crate::error::{WriteError, WriteResult};
 use crate::FileRef;
 use indexmap::{indexset, IndexSet};
 use std::borrow::BorrowMut;
@@ -83,7 +83,9 @@ where
     W: Write,
 {
     pub fn bytes(&mut self, bytes: &[u8]) -> WriteResult {
-        self.inner.write_all(bytes).map_err(Into::into)
+        self.inner
+            .write_all(bytes)
+            .map_err(|err| WriteError(format!("{err}")))
     }
 
     impl_write_num!(u8, u16, u32, u64, f32);

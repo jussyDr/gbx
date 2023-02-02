@@ -26,9 +26,7 @@ impl Item {
     {
         match gbx::read(reader)? {
             ItemModel::Item(item) => Ok(item),
-            ItemModel::Block(_) => {
-                Err(ReadError::Generic(String::from("expected item, got block")))
-            }
+            ItemModel::Block(_) => Err(ReadError(String::from("expected item, got block"))),
         }
     }
 

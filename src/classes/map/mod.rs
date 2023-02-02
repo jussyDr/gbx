@@ -1,7 +1,7 @@
 /// Media tracker types.
 pub mod media;
 
-use crate::error::{ReadResult, WriteResult};
+use crate::error::{ReadError, ReadResult, WriteError, WriteResult};
 use crate::gbx::{Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader, WriteBody, WriteHeader};
 use crate::reader::{self, Reader};
 use crate::types::{RcStr, Vec3};
@@ -562,7 +562,7 @@ impl Map {
     where
         P: AsRef<Path>,
     {
-        let file = File::open(path)?;
+        let file = File::open(path).map_err(|err| ReadError(format!("{err}")))?;
         let reader = BufReader::new(file);
         Self::read_from(reader)
     }
@@ -596,7 +596,7 @@ impl Map {
     where
         P: AsRef<Path>,
     {
-        let file = File::create(path)?;
+        let file = File::create(path).map_err(|err| WriteError(format!("{err}")))?;
         let writer = BufWriter::new(file);
         self.write_to(writer)
     }

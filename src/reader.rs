@@ -74,7 +74,9 @@ macro_rules! impl_read_num {
         $(
             pub fn $type(&mut self) -> ReadResult<$type> {
                 let mut buf = [0; size_of::<$type>()];
-                self.inner.read_exact(&mut buf)?;
+                self.inner
+                    .read_exact(&mut buf)
+                    .map_err(|err| ReadError(format!("{err}")))?;
                 Ok($type::from_le_bytes(buf))
             }
         )+
@@ -91,13 +93,17 @@ where
 
     pub fn bytes(&mut self, n: usize) -> ReadResult<Vec<u8>> {
         let mut buf = vec![0; n];
-        self.inner.read_exact(&mut buf)?;
+        self.inner
+            .read_exact(&mut buf)
+            .map_err(|err| ReadError(format!("{err}")))?;
         Ok(buf)
     }
 
     pub fn bytes_array<const S: usize>(&mut self) -> ReadResult<[u8; S]> {
         let mut buf = [0; S];
-        self.inner.read_exact(&mut buf)?;
+        self.inner
+            .read_exact(&mut buf)
+            .map_err(|err| ReadError(format!("{err}")))?;
         Ok(buf)
     }
 
@@ -107,7 +113,7 @@ where
         match self.u32()? {
             0 => Ok(false),
             1 => Ok(true),
-            _ => Err(ReadError::Generic(String::from("expected boolean"))),
+            _ => Err(ReadError(String::from("expected boolean"))),
         }
     }
 
@@ -115,7 +121,7 @@ where
         match self.u8()? {
             0 => Ok(false),
             1 => Ok(true),
-            _ => Err(ReadError::Generic(String::from("expected boolean"))),
+            _ => Err(ReadError(String::from("expected boolean"))),
         }
     }
 
@@ -132,7 +138,7 @@ where
     pub fn string(&mut self) -> ReadResult<String> {
         let len = self.u32()?;
         let bytes = self.bytes(len as usize)?;
-        let string = String::from_utf8(bytes).map_err(|err| err.utf8_error())?;
+        let string = String::from_utf8(bytes).map_err(|err| ReadError(format!("{err}")))?;
         Ok(string)
     }
 
@@ -192,9 +198,7 @@ where
         match self.optional_file_ref()? {
             Some(file_ref) => file_ref
                 .internal()
-                .ok_or(ReadError::Generic(String::from(
-                    "expected internal file ref",
-                )))
+                .ok_or(ReadError(String::from("expected internal file ref")))
                 .map(Some),
             None => Ok(None),
         }
@@ -202,7 +206,7 @@ where
 
     pub fn optional_file_ref(&mut self) -> ReadResult<Option<FileRef>> {
         if self.u8()? != 3 {
-            return Err(ReadError::Generic(String::from("invalid file ref version")));
+            return Err(ReadError(String::from("unsupported file ref version")));
         }
 
         let hash = self.bytes_array()?;
@@ -229,8 +233,8 @@ where
         let value = self.u32()?;
 
         if value != chunk_id {
-            return Err(ReadError::Generic(format!(
-                "expected chunk {chunk_id:08X}, found chunk {value:08X}"
+            return Err(ReadError(format!(
+                "expected chunk {chunk_id:08X}, got chunk {value:08X}"
             )));
         }
 
@@ -241,7 +245,7 @@ where
         self.chunk_id(chunk_id)?;
 
         if self.bytes(4)? != b"PIKS" {
-            return Err(ReadError::Generic(format!(
+            return Err(ReadError(format!(
                 "expected skippable chunk {chunk_id:08X}"
             )));
         }
@@ -253,8 +257,8 @@ where
         let value = self.u32()?;
 
         if value != class_id {
-            return Err(ReadError::Generic(format!(
-                "expected class {class_id:08X}, found class {value:08X}"
+            return Err(ReadError(format!(
+                "expected class {class_id:08X}, got class {value:08X}"
             )));
         }
 
@@ -272,7 +276,7 @@ where
 
     pub fn node_end(&mut self) -> ReadResult<()> {
         if self.u32()? != 0xFACADE01 {
-            return Err(ReadError::Generic(String::from("expected end of node")));
+            return Err(ReadError(String::from("expected end of node")));
         }
 
         Ok(())
@@ -284,7 +288,9 @@ where
     R: Seek,
 {
     pub fn skip(&mut self, n: u64) -> ReadResult<()> {
-        self.inner.seek(SeekFrom::Current(n as i64))?;
+        self.inner
+            .seek(SeekFrom::Current(n as i64))
+            .map_err(|err| ReadError(format!("{err}")))?;
         Ok(())
     }
 }
@@ -296,13 +302,17 @@ where
     #[allow(unused)]
     pub fn peek_bytes(&mut self, n: usize) -> ReadResult<Vec<u8>> {
         let bytes = self.bytes(n)?;
-        self.inner.seek(SeekFrom::Current(-(n as i64)))?;
+        self.inner
+            .seek(SeekFrom::Current(-(n as i64)))
+            .map_err(|err| ReadError(format!("{err}")))?;
         Ok(bytes)
     }
 
     pub fn peek_u32(&mut self) -> ReadResult<u32> {
         let bytes = self.u32()?;
-        self.inner.seek(SeekFrom::Current(-4))?;
+        self.inner
+            .seek(SeekFrom::Current(-4))
+            .map_err(|err| ReadError(format!("{err}")))?;
         Ok(bytes)
     }
 
@@ -311,7 +321,9 @@ where
         F: FnMut(&mut Self) -> ReadResult<()>,
     {
         if self.u32()? != chunk_id {
-            self.inner.seek(SeekFrom::Current(-4))?;
+            self.inner
+                .seek(SeekFrom::Current(-4))
+                .map_err(|err| ReadError(format!("{err}")))?;
             return Ok(());
         }
 
@@ -323,7 +335,9 @@ where
         F: FnMut(&mut Self) -> ReadResult<()>,
     {
         if self.u32()? != chunk_id {
-            self.inner.seek(SeekFrom::Current(-4))?;
+            self.inner
+                .seek(SeekFrom::Current(-4))
+                .map_err(|err| ReadError(format!("{err}")))?;
             return Ok(());
         }
 
@@ -342,12 +356,14 @@ where
         let value = self.u32()?;
 
         if value != chunk_id {
-            self.inner.seek(SeekFrom::Current(-4))?;
+            self.inner
+                .seek(SeekFrom::Current(-4))
+                .map_err(|err| ReadError(format!("{err}")))?;
             return Ok(());
         }
 
         if self.bytes(4)? != b"PIKS" {
-            return Err(ReadError::Generic(format!(
+            return Err(ReadError(format!(
                 "expected skippable chunk {chunk_id:08X}"
             )));
         }
@@ -369,7 +385,9 @@ where
             return Ok(None);
         }
 
-        self.inner.seek(SeekFrom::Current(-4))?;
+        self.inner
+            .seek(SeekFrom::Current(-4))
+            .map_err(|err| ReadError(format!("{err}")))?;
 
         self.class_id(class_id)?;
         let node = read_fn(self)?;
@@ -385,7 +403,7 @@ where
     pub fn id(&mut self) -> ReadResult<RcStr> {
         match self.optional_id()? {
             Some(id) => Ok(id),
-            None => Err(ReadError::Generic(String::from("expected id, found null"))),
+            None => Err(ReadError(String::from("expected id, got null"))),
         }
     }
 
@@ -394,9 +412,7 @@ where
             let version = self.u32()?;
 
             if version != 3 {
-                return Err(ReadError::Generic(format!(
-                    "unsupported id version {version}"
-                )));
+                return Err(ReadError(String::from("unsupported id version")));
             }
 
             self.id_state.borrow_mut().seen_id = true;
@@ -416,7 +432,7 @@ where
                     .ids
                     .get((index & 0x00000FFF) as usize - 1)
                     .ok_or_else(|| {
-                        ReadError::Generic(format!(
+                        ReadError(format!(
                             "invalid id index {}",
                             (index & 0x00000FFF) as usize - 1
                         ))
@@ -425,7 +441,7 @@ where
                 Ok(Some(RcStr::clone(id)))
             }
             0x00000001 => Ok(Some(RcStr::empty())), // what is this
-            _ => Err(ReadError::Generic(String::from("expected id"))),
+            _ => Err(ReadError(String::from("expected id"))),
         }
     }
 }
@@ -442,9 +458,7 @@ where
     {
         match self.optional_node(class_id, read_fn)? {
             Some(node) => Ok(node),
-            None => Err(ReadError::Generic(String::from(
-                "expected node, found null",
-            ))),
+            None => Err(ReadError(String::from("expected node, got null"))),
         }
     }
 
@@ -463,8 +477,8 @@ where
     {
         self.any_optional_node(|r, id| {
             if id != class_id {
-                return Err(ReadError::Generic(format!(
-                    "expected class {class_id:08X}, found {id:08X}"
+                return Err(ReadError(format!(
+                    "expected class {class_id:08X}, got class {id:08X}"
                 )));
             }
 
@@ -488,9 +502,7 @@ where
     {
         match self.any_optional_node(read_fn)? {
             Some(node) => Ok(node),
-            None => Err(ReadError::Generic(String::from(
-                "expected node, found null",
-            ))),
+            None => Err(ReadError(String::from("expected got, found null"))),
         }
     }
 
@@ -549,7 +561,7 @@ where
                 Ok(Some(node_ref))
             }
         } else {
-            Err(ReadError::Generic(String::from("invalid node index")))
+            Err(ReadError(String::from("invalid node index")))
         }
     }
 
