@@ -204,6 +204,16 @@ where
         }
     }
 
+    pub fn optional_external_file_ref(&mut self) -> ReadResult<Option<ExternalFileRef>> {
+        match self.optional_file_ref()? {
+            Some(file_ref) => file_ref
+                .external()
+                .ok_or(ReadError(String::from("expected external file ref")))
+                .map(Some),
+            None => Ok(None),
+        }
+    }
+
     pub fn optional_file_ref(&mut self) -> ReadResult<Option<FileRef>> {
         if self.u8()? != 3 {
             return Err(ReadError(String::from("unsupported file ref version")));

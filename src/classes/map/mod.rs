@@ -6,7 +6,7 @@ use crate::gbx::{Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader, WriteBody,
 use crate::reader::{self, Reader};
 use crate::types::{Id, Vec3};
 use crate::writer::{self, Writer};
-use crate::{gbx, FileRef, Ghost};
+use crate::{gbx, ExternalFileRef, FileRef, Ghost};
 use int_enum::{IntoInteger, TryFromInteger};
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
@@ -65,7 +65,7 @@ impl Sub for Direction {
 }
 
 /// Color of a block or item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger, IntoInteger)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum Color {
@@ -85,7 +85,7 @@ pub enum Color {
 }
 
 /// Lightmap quality of a block or item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger, IntoInteger)]
 #[repr(u8)]
 pub enum LightmapQuality {
     /// Normal lightmap quality.
@@ -128,7 +128,7 @@ impl Ord for LightmapQuality {
 }
 
 /// Animation phase offset of a moving item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger, IntoInteger)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum PhaseOffset {
@@ -350,13 +350,55 @@ pub struct FreeBlock {
     pub lightmap_quality: LightmapQuality,
 }
 
-/// Either a 'normal' or free block.
+/// Either a 'normal' block or a free block.
 #[derive(Debug)]
 pub enum BlockType {
     /// A 'normal' block.
     Normal(Block),
     /// A free block.
     Free(FreeBlock),
+}
+
+impl BlockType {
+    /// Model ID of the block or free block.
+    pub fn model_id(&self) -> &Id {
+        match *self {
+            Self::Normal(ref block) => &block.model_id,
+            Self::Free(ref free_block) => &free_block.model_id,
+        }
+    }
+
+    /// Skin of the block or free block.
+    pub fn skin(&self) -> Option<&Skin> {
+        match *self {
+            Self::Normal(ref block) => block.skin.as_ref().map(|skin| skin.as_ref()),
+            Self::Free(ref free_block) => free_block.skin.as_ref().map(|skin| skin.as_ref()),
+        }
+    }
+
+    /// Waypoint property of the block or free block.
+    pub fn waypoint_property(&self) -> Option<&WaypointProperty> {
+        match *self {
+            Self::Normal(ref block) => block.waypoint_property.as_ref(),
+            Self::Free(ref free_block) => free_block.waypoint_property.as_ref(),
+        }
+    }
+
+    /// Color of the block or free block.
+    pub fn color(&self) -> Color {
+        match *self {
+            Self::Normal(ref block) => block.color,
+            Self::Free(ref free_block) => free_block.color,
+        }
+    }
+
+    /// Lightmap quality of the block or free block.
+    pub fn lightmap_quality(&self) -> LightmapQuality {
+        match *self {
+            Self::Normal(ref block) => block.lightmap_quality,
+            Self::Free(ref free_block) => free_block.lightmap_quality,
+        }
+    }
 }
 
 impl Default for BlockType {
@@ -511,7 +553,7 @@ pub struct Map {
     /// Optional thumbnail of the map as raw JPEG.
     pub thumbnail: Option<Vec<u8>>,
     /// Optional texture mod.
-    pub texture_mod: Option<FileRef>,
+    pub texture_mod: Option<ExternalFileRef>,
     /// Day time which specifies the mood of the map.
     ///
     /// The constants [`NIGHT_MOOD_TIME`], [`SUNRISE_MOOD_TIME`], [`DAY_MOOD_TIME`] and [`SUNSET_MOOD_TIME`]
@@ -966,7 +1008,7 @@ impl Map {
     where
         R: Read,
     {
-        self.texture_mod = r.optional_file_ref()?;
+        self.texture_mod = r.optional_external_file_ref()?;
 
         Ok(())
     }
@@ -1433,6 +1475,20 @@ impl Map {
                     .with_attribute(("authorzone", self.author_zone.as_str()))
                     .write_empty()?;
 
+                let mod_file_name = self
+                    .texture_mod
+                    .as_ref()
+                    .map(|texture_mod| {
+                        texture_mod
+                            .path
+                            .file_stem()
+                            .unwrap()
+                            .to_str()
+                            .unwrap()
+                            .to_owned()
+                    })
+                    .unwrap_or_default();
+
                 let has_ghost_block = self.blocks.iter().any(|block| match block {
                     BlockType::Normal(block) => block.is_ghost,
                     BlockType::Free(_) => false,
@@ -1454,7 +1510,7 @@ impl Map {
                         self.num_laps.unwrap_or_default().to_string().as_str(),
                     ))
                     .with_attribute(("displaycost", self.cost.to_string().as_str()))
-                    .with_attribute(("mod", ""))
+                    .with_attribute(("mod", mod_file_name.as_str()))
                     .with_attribute((
                         "hasghostblocks",
                         (has_ghost_block as u8).to_string().as_str(),
@@ -1462,6 +1518,41 @@ impl Map {
                     .write_empty()?;
 
                 xml_writer.create_element("playermodel").write_empty()?;
+
+                let bronze_time = self
+                    .validation
+                    .as_ref()
+                    .map(|validation| validation.bronze_time.to_string());
+
+                let silver_time = self
+                    .validation
+                    .as_ref()
+                    .map(|validation| validation.silver_time.to_string());
+
+                let gold_time = self
+                    .validation
+                    .as_ref()
+                    .map(|validation| validation.gold_time.to_string());
+
+                let author_time = self
+                    .validation
+                    .as_ref()
+                    .map(|validation| validation.author_time.to_string());
+
+                xml_writer
+                    .create_element("times")
+                    .with_attribute(("bronze", bronze_time.unwrap_or(String::from("-1")).as_str()))
+                    .with_attribute(("silver", silver_time.unwrap_or(String::from("-1")).as_str()))
+                    .with_attribute(("gold", gold_time.unwrap_or(String::from("-1")).as_str()))
+                    .with_attribute((
+                        "authortime",
+                        author_time.unwrap_or(String::from("-1")).as_str(),
+                    ))
+                    .write_empty()?;
+
+                xml_writer
+                    .create_element("deps")
+                    .write_inner_content(|_| Ok(()))?;
 
                 Ok(())
             })
@@ -1686,10 +1777,17 @@ where
 
             w.skippable_chunk(0x0305B00A, |mut w| {
                 w.u32(0)?;
-                w.u32(0xFFFFFFFF)?;
-                w.u32(0xFFFFFFFF)?;
-                w.u32(0xFFFFFFFF)?;
-                w.u32(0xFFFFFFFF)?;
+                if let Some(ref validation) = self.validation {
+                    w.u32(validation.bronze_time)?;
+                    w.u32(validation.silver_time)?;
+                    w.u32(validation.gold_time)?;
+                    w.u32(validation.author_time)?;
+                } else {
+                    w.u32(0xFFFFFFFF)?;
+                    w.u32(0xFFFFFFFF)?;
+                    w.u32(0xFFFFFFFF)?;
+                    w.u32(0xFFFFFFFF)?;
+                }
                 w.u32(60000)?;
                 w.u32(0)?;
 
@@ -1702,7 +1800,7 @@ where
             w.skippable_chunk(0x0305B00E, |mut w| {
                 w.string("TrackMania\\TM_Race")?;
                 w.u32(0)?;
-                w.u32(0)?;
+                w.bool(self.validation.is_some())?;
 
                 Ok(())
             })?;
@@ -1712,22 +1810,22 @@ where
         w.u32(6)?;
 
         w.skippable_chunk(0x03043018, |mut w| {
-            w.u32(0)?;
-            w.u32(3)?;
+            w.bool(self.num_laps.is_some())?;
+            w.u32(self.num_laps.unwrap_or(3))?;
 
             Ok(())
         })?;
 
         w.skippable_chunk(0x03043019, |mut w| {
-            w.file_ref(None)?;
+            w.file_ref(self.texture_mod.clone().map(FileRef::External))?;
 
             Ok(())
         })?;
 
         w.u32(0x0304301F)?;
-        w.id(None)?;
+        w.id(Some(&self.uid))?;
         w.u32(26)?;
-        w.id(None)?;
+        w.id(Some(&self.author_uid))?;
         w.string(&self.name)?;
         w.id(Some("48x48Day"))?;
         w.u32(26)?;
@@ -1737,13 +1835,16 @@ where
         w.u32(48)?;
         w.u32(0)?;
         w.u32(6)?;
-        w.u32(0)?;
+        w.u32(self.blocks.len() as u32)?;
+        for _block in &self.blocks {
+            panic!()
+        }
 
         w.u32(0x03043022)?;
         w.u32(1)?;
 
         w.u32(0x03043024)?;
-        w.file_ref(None)?;
+        w.file_ref(self.music.clone())?;
 
         w.u32(0x03043025)?;
         w.u32(0)?;
@@ -1830,9 +1931,9 @@ where
         w.skippable_chunk(0x03043042, |mut w| {
             w.u32(1)?;
             w.u32(0)?;
-            w.string("")?;
-            w.string("")?;
-            w.string("")?;
+            w.string(&self.author_uid)?;
+            w.string(&self.author_name)?;
+            w.string(&self.author_zone)?;
             w.u32(0)?;
 
             Ok(())
@@ -1873,7 +1974,41 @@ where
         w.skippable_chunk(0x03043048, |mut w| {
             w.u32(0)?;
             w.u32(6)?;
-            w.u32(0)?;
+            w.u32(self.baked_blocks.len() as u32)?;
+            for baked_block in &self.baked_blocks {
+                let mut flags = 0;
+
+                if baked_block.skin().is_some() {
+                    flags |= 0x00008000;
+                }
+
+                w.id(Some(baked_block.model_id().as_str()))?;
+
+                match baked_block {
+                    BlockType::Normal(block) => {
+                        if block.is_ghost {
+                            flags |= 0x10000000;
+                        }
+
+                        w.u8(block.dir.into())?;
+                        w.u8(block.coord.x)?;
+                        w.u8(block.coord.y)?;
+                        w.u8(block.coord.z)?;
+                        w.u32(flags)?;
+                    }
+                    BlockType::Free(..) => {
+                        w.u8(0)?;
+                        w.u8(0)?;
+                        w.u8(0)?;
+                        w.u8(0)?;
+                        w.u32(flags | 0x20000000)?;
+                    }
+                }
+
+                if let Some(_skin) = baked_block.skin() {
+                    panic!()
+                }
+            }
             w.u32(0)?;
             w.u32(0)?;
 
@@ -1908,6 +2043,7 @@ where
         })?;
 
         w.skippable_chunk(0x03043050, |mut w| {
+            w.u32(0)?;
             w.u32(3)?;
             w.u32(1)?;
             w.u32(3)?;
@@ -1958,7 +2094,7 @@ where
         w.skippable_chunk(0x03043056, |mut w| {
             w.u32(3)?;
             w.u32(0)?;
-            w.u32(0xFFFFFFFF)?;
+            w.u32(self.day_time as u32)?;
             w.u32(0)?;
             w.u32(0)?;
             w.u32(300000)?;
@@ -2030,6 +2166,26 @@ where
 
         w.skippable_chunk(0x0304305F, |mut w| {
             w.u32(0)?;
+            for block in &self.blocks {
+                if let BlockType::Free(free_block) = block {
+                    w.f32(free_block.pos.x)?;
+                    w.f32(free_block.pos.y)?;
+                    w.f32(free_block.pos.z)?;
+                    w.f32(free_block.yaw)?;
+                    w.f32(free_block.pitch)?;
+                    w.f32(free_block.roll)?;
+                }
+            }
+            for baked_block in &self.baked_blocks {
+                if let BlockType::Free(free_block) = baked_block {
+                    w.f32(free_block.pos.x)?;
+                    w.f32(free_block.pos.y)?;
+                    w.f32(free_block.pos.z)?;
+                    w.f32(free_block.yaw)?;
+                    w.f32(free_block.pitch)?;
+                    w.f32(free_block.roll)?;
+                }
+            }
 
             Ok(())
         })?;
@@ -2053,12 +2209,24 @@ where
 
         w.skippable_chunk(0x03043062, |mut w| {
             w.u32(0)?;
+            for block in &self.blocks {
+                w.u8(block.color().into())?;
+            }
+            for baked_block in &self.baked_blocks {
+                w.u8(baked_block.color().into())?;
+            }
+            for item in &self.items {
+                w.u8(item.color.into())?;
+            }
 
             Ok(())
         })?;
 
         w.skippable_chunk(0x03043063, |mut w| {
             w.u32(0)?;
+            for item in &self.items {
+                w.u8(item.anim_offset.into())?;
+            }
 
             Ok(())
         })?;
@@ -2074,6 +2242,9 @@ where
 
         w.skippable_chunk(0x03043065, |mut w| {
             w.u32(0)?;
+            for _item in &self.items {
+                w.u8(0)?;
+            }
 
             Ok(())
         })?;
@@ -2089,12 +2260,27 @@ where
 
         w.skippable_chunk(0x03043068, |mut w| {
             w.u32(1)?;
+            for block in &self.blocks {
+                w.u8(block.lightmap_quality().into())?;
+            }
+            for baked_block in &self.baked_blocks {
+                w.u8(baked_block.lightmap_quality().into())?;
+            }
+            for item in &self.items {
+                w.u8(item.lightmap_quality.into())?;
+            }
 
             Ok(())
         })?;
 
         w.skippable_chunk(0x03043069, |mut w| {
             w.u32(0)?;
+            for _block in &self.blocks {
+                w.u32(0xFFFFFFFF)?;
+            }
+            for _item in &self.items {
+                w.u32(0xFFFFFFFF)?;
+            }
             w.u32(0)?;
 
             Ok(())
