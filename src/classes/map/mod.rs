@@ -18,6 +18,15 @@ use std::io::{BufReader, BufWriter, Cursor, Read, Seek, Write};
 use std::ops::Sub;
 use std::path::Path;
 
+/// Day time of the default sunrise mood.
+pub const SUNRISE_MOOD_TIME: u16 = 20808;
+/// Day time of the default day mood.
+pub const DAY_MOOD_TIME: u16 = 33041;
+/// Day time of the default sunset mood.
+pub const SUNSET_MOOD_TIME: u16 = 52920;
+/// Day time of the default night mood.
+pub const NIGHT_MOOD_TIME: u16 = 6554;
+
 /// Medal times of a map.
 #[derive(Clone, Hash, Debug)]
 pub struct MedalTimes {
@@ -435,7 +444,7 @@ where
 
 /// Files embedded in a map.
 pub struct EmbeddedFiles {
-    /// Ids of the files embedded in the map.
+    /// IDs of the files embedded in the map.
     ///
     /// The length is equal to the number of files in the `embedded_files` ZIP archive.
     pub embedded_file_ids: Vec<RcStr>,
@@ -494,11 +503,8 @@ pub struct Map {
     pub texture_mod: Option<FileRef>,
     /// Day time which specifies the mood of the map.
     ///
-    /// Below are the values of `day_time` for the default moods:
-    ///  - Night: 6554  
-    ///  - Sunrise: 20808
-    ///  - Day: 33041
-    ///  - Sunset: 52920
+    /// The constants [`NIGHT_MOOD_TIME`], [`SUNRISE_MOOD_TIME`], [`DAY_MOOD_TIME`] and [`SUNSET_MOOD_TIME`]
+    /// specify the values of `daytime` for the default moods.
     pub day_time: u16,
     /// Size of the map.
     pub size: Vec3<u32>,
@@ -665,12 +671,12 @@ fn does_deco_have_no_stadium(deco_id: &str) -> bool {
 
 fn day_time_from_deco_id(deco_id: &str) -> u16 {
     match deco_id {
-        "48x48Sunrise" => 20808,
-        "48x48Day" => 33041,
-        "48x48Sunset" => 52920,
-        "48x48Night" => 6554,
-        "NoStadium48x48Day" => 33041,
-        "Day16x12" => 33041,
+        "48x48Sunrise" => SUNRISE_MOOD_TIME,
+        "48x48Day" => DAY_MOOD_TIME,
+        "48x48Sunset" => SUNSET_MOOD_TIME,
+        "48x48Night" => NIGHT_MOOD_TIME,
+        "NoStadium48x48Day" => DAY_MOOD_TIME,
+        "Day16x12" => DAY_MOOD_TIME,
         _ => panic!(),
     }
 }
@@ -761,11 +767,11 @@ impl Map {
             Event::Empty(e) if e.local_name().as_ref() == b"desc" => {
                 let attributes = xml_attributes_to_map(e.attributes());
                 self.day_time = match attributes.get("mood").unwrap().as_str() {
-                    "Sunrise" => 20808,
-                    "Day" => 33041,
-                    "Sunset" => 52920,
-                    "Night" => 6554,
-                    "Day16x12" => 33041,
+                    "Sunrise" => SUNRISE_MOOD_TIME,
+                    "Day" => DAY_MOOD_TIME,
+                    "Sunset" => SUNSET_MOOD_TIME,
+                    "Night" => NIGHT_MOOD_TIME,
+                    "Day16x12" => DAY_MOOD_TIME,
                     _ => panic!(),
                 };
                 self.cost = attributes.get("displaycost").unwrap().parse().unwrap();

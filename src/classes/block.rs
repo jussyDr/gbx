@@ -11,7 +11,7 @@ use std::path::Path;
 /// Type corresponding to the file extension `Block.Gbx`.
 #[derive(Clone, Default)]
 pub struct Block {
-    /// Id of the block info archetype.
+    /// ID of the block info archetype.
     pub archetype: RcStr,
     /// Variant models of the block.
     pub variants: Vec<Model>,
