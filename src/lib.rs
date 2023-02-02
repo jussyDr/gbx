@@ -26,4 +26,4 @@ pub use classes::{block, ghost, item, map, model};
 pub use ghost::Ghost;
 pub use item::Item;
 pub use map::Map;
-pub use types::{ExternalFileRef, FileRef, InternalFileRef, RcStr, Rgb, Vec3};
+pub use types::{ExternalFileRef, FileRef, Id, InternalFileRef, Rgb, Vec3};

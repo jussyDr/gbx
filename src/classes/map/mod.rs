@@ -4,7 +4,7 @@ pub mod media;
 use crate::error::{ReadError, ReadResult, WriteError, WriteResult};
 use crate::gbx::{Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader, WriteBody, WriteHeader};
 use crate::reader::{self, Reader};
-use crate::types::{RcStr, Vec3};
+use crate::types::{Id, Vec3};
 use crate::writer::{self, Writer};
 use crate::{gbx, FileRef, Ghost};
 use integer_enum::{IntoInteger, TryFromInteger};
@@ -314,7 +314,7 @@ where
 #[derive(Default, Debug)]
 pub struct Block {
     /// ID of the block's model.
-    pub model_id: RcStr,
+    pub model_id: Id,
     /// Direction of the block.
     pub dir: Direction,
     /// Coordinate of the block.
@@ -339,7 +339,7 @@ pub struct Block {
 #[derive(Default, Debug)]
 pub struct FreeBlock {
     /// ID of the block's model.
-    pub model_id: RcStr,
+    pub model_id: Id,
     /// Skin of the block, e.g. for signs.
     pub skin: Option<Box<Skin>>,
     /// Waypoint property.
@@ -377,7 +377,7 @@ impl Default for BlockType {
 #[derive(Default)]
 pub struct Item {
     /// ID of the item's model.
-    pub model_id: RcStr,
+    pub model_id: Id,
     /// Yaw rotation of the item.
     pub yaw: f32,
     /// Pitch rotation of the item.
@@ -468,7 +468,7 @@ pub struct EmbeddedFiles {
     /// IDs of the files embedded in the map.
     ///
     /// The length is equal to the number of files in the `embedded_files` ZIP archive.
-    pub embedded_file_ids: Vec<RcStr>,
+    pub embedded_file_ids: Vec<Id>,
     /// All files embedded in the map as a raw ZIP archive.
     pub embedded_files: Vec<u8>,
 }
@@ -501,11 +501,11 @@ pub struct Map {
     /// Name of the map.
     pub name: String,
     /// Unique ID of the map.
-    pub uid: RcStr,
+    pub uid: Id,
     /// Name of the map author.
     pub author_name: String,
     /// Unique ID of the map author.
-    pub author_uid: RcStr,
+    pub author_uid: Id,
     /// Zone of the map author.
     pub author_zone: String,
     /// Optional validation of the map.
@@ -776,9 +776,9 @@ impl Map {
         match xml_reader.read_event().unwrap() {
             Event::Empty(e) if e.local_name().as_ref() == b"ident" => {
                 let attributes = xml_attributes_to_map(e.attributes());
-                self.uid = RcStr::new(attributes.get("uid").unwrap().clone());
+                self.uid = Id::new(attributes.get("uid").unwrap().clone());
                 self.name = attributes.get("name").unwrap().clone();
-                self.author_uid = RcStr::new(attributes.get("author").unwrap().clone());
+                self.author_uid = Id::new(attributes.get("author").unwrap().clone());
                 self.author_zone = attributes.get("authorzone").unwrap().clone();
             }
             _ => panic!(),
@@ -886,7 +886,7 @@ impl Map {
     {
         r.u32()?;
         let _author_version = r.u32()?;
-        self.author_uid = RcStr::new(r.string()?);
+        self.author_uid = Id::new(r.string()?);
         self.author_name = r.string()?;
         self.author_zone = r.string()?;
         let _author_extra_info = r.u32()?;
@@ -1155,7 +1155,7 @@ impl Map {
     {
         r.u32()?;
         r.u32()?;
-        self.author_uid = RcStr::new(r.string()?);
+        self.author_uid = Id::new(r.string()?);
         self.author_name = r.string()?;
         self.author_zone = r.string()?;
         r.u32()?;

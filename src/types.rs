@@ -97,17 +97,17 @@ impl FileRef {
 
 /// Reference counted, immutable string.
 #[derive(Clone, Default)]
-pub struct RcStr(Option<Rc<str>>);
+pub struct Id(Option<Rc<str>>);
 
-impl RcStr {
+impl Id {
     /// Create a new reference counted string.
     pub fn new(s: String) -> Self {
         Self(Some(s.into()))
     }
 
-    /// Create an empty `RcStr`.
+    /// Create an empty `Id`.
     ///
-    /// This function does not allocate, and the resulting `RcStr` is not actually reference counted.
+    /// This function does not allocate, and the resulting `Id` is not actually reference counted.
     pub const fn empty() -> Self {
         Self(None)
     }
@@ -118,7 +118,7 @@ impl RcStr {
     }
 }
 
-impl Deref for RcStr {
+impl Deref for Id {
     type Target = str;
 
     fn deref(&self) -> &str {
@@ -129,7 +129,7 @@ impl Deref for RcStr {
     }
 }
 
-impl Debug for RcStr {
+impl Debug for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self(Some(ref str)) => Debug::fmt(str, f),
@@ -138,7 +138,7 @@ impl Debug for RcStr {
     }
 }
 
-impl Display for RcStr {
+impl Display for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self(Some(ref str)) => Display::fmt(str, f),

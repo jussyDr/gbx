@@ -1,5 +1,5 @@
 use crate::error::{ReadError, ReadResult};
-use crate::types::{ExternalFileRef, FileRef, InternalFileRef, RcStr};
+use crate::types::{ExternalFileRef, FileRef, Id, InternalFileRef};
 use crate::Vec3;
 use std::any::Any;
 use std::borrow::BorrowMut;
@@ -9,7 +9,7 @@ use std::mem::size_of;
 
 pub struct IdState {
     seen_id: bool,
-    ids: Vec<RcStr>,
+    ids: Vec<Id>,
 }
 
 impl IdState {
@@ -400,14 +400,14 @@ where
     R: Read,
     I: BorrowMut<IdState>,
 {
-    pub fn id(&mut self) -> ReadResult<RcStr> {
+    pub fn id(&mut self) -> ReadResult<Id> {
         match self.optional_id()? {
             Some(id) => Ok(id),
             None => Err(ReadError(String::from("expected id, got null"))),
         }
     }
 
-    pub fn optional_id(&mut self) -> ReadResult<Option<RcStr>> {
+    pub fn optional_id(&mut self) -> ReadResult<Option<Id>> {
         if !self.id_state.borrow().seen_id {
             let version = self.u32()?;
 
@@ -421,8 +421,8 @@ where
         match self.u32()? {
             0xFFFFFFFF => Ok(None),
             0x40000000 => {
-                let id = RcStr::new(self.string()?);
-                self.id_state.borrow_mut().ids.push(RcStr::clone(&id));
+                let id = Id::new(self.string()?);
+                self.id_state.borrow_mut().ids.push(Id::clone(&id));
                 Ok(Some(id))
             }
             index if index & 0xFFFFF000 == 0x40000000 => {
@@ -438,9 +438,9 @@ where
                         ))
                     })?;
 
-                Ok(Some(RcStr::clone(id)))
+                Ok(Some(Id::clone(id)))
             }
-            0x00000001 => Ok(Some(RcStr::empty())), // what is this
+            0x00000001 => Ok(Some(Id::empty())), // what is this
             _ => Err(ReadError(String::from("expected id"))),
         }
     }

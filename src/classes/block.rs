@@ -2,7 +2,7 @@ use crate::error::{ReadError, ReadResult};
 use crate::gbx::{self, ReadBody, ReadChunk};
 use crate::model::{Crystal, ItemModel, Model};
 use crate::reader::{self, Reader};
-use crate::RcStr;
+use crate::Id;
 use std::borrow::BorrowMut;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek};
@@ -12,7 +12,7 @@ use std::path::Path;
 #[derive(Clone, Default)]
 pub struct Block {
     /// ID of the block info archetype.
-    pub archetype: RcStr,
+    pub archetype: Id,
     /// Variant models of the block.
     pub variants: Vec<Model>,
 }
