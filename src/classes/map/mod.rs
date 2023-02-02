@@ -679,26 +679,22 @@ impl Map {
 }
 
 fn does_deco_have_no_stadium(deco_id: &str) -> bool {
-    match deco_id {
-        "48x48Sunrise" => false,
-        "48x48Day" => false,
-        "48x48Sunset" => false,
-        "48x48Night" => false,
-        "NoStadium48x48Day" => true,
-        "Day16x12" => true,
-        _ => panic!(),
-    }
+    deco_id.starts_with("NoStadium48x48") || deco_id.ends_with("16x12")
 }
 
-fn day_time_from_deco_id(deco_id: &str) -> u16 {
-    match deco_id {
-        "48x48Sunrise" => SUNRISE_MOOD_TIME,
-        "48x48Day" => DAY_MOOD_TIME,
-        "48x48Sunset" => SUNSET_MOOD_TIME,
-        "48x48Night" => NIGHT_MOOD_TIME,
-        "NoStadium48x48Day" => DAY_MOOD_TIME,
-        "Day16x12" => DAY_MOOD_TIME,
-        _ => panic!(),
+fn day_time_from_deco_id(deco_id: &str) -> ReadResult<u16> {
+    let mood = deco_id
+        .strip_prefix("48x48")
+        .or(deco_id.strip_prefix("NoStadium48x48"))
+        .or(deco_id.strip_suffix("16x12"))
+        .ok_or(ReadError(String::from("invalid decoration id")))?;
+
+    match mood {
+        "Sunrise" => Ok(SUNRISE_MOOD_TIME),
+        "Day" => Ok(DAY_MOOD_TIME),
+        "Sunset" => Ok(SUNSET_MOOD_TIME),
+        "Night" => Ok(NIGHT_MOOD_TIME),
+        _ => Err(ReadError(String::from("invalid decoration mood"))),
     }
 }
 
@@ -718,7 +714,7 @@ impl Map {
         let _password = r.u32()?;
         let deco_id = r.id()?;
         self.no_stadium = does_deco_have_no_stadium(&deco_id);
-        self.day_time = day_time_from_deco_id(&deco_id);
+        self.day_time = day_time_from_deco_id(&deco_id)?;
         r.u32()?;
         let _deco_author = r.id()?;
         let _map_origin = r.vec2f32()?;
@@ -1007,7 +1003,7 @@ impl Map {
         self.name = r.string()?;
         let deco_id = r.id()?;
         self.no_stadium = does_deco_have_no_stadium(&deco_id);
-        self.day_time = day_time_from_deco_id(&deco_id);
+        self.day_time = day_time_from_deco_id(&deco_id)?;
         r.u32()?;
         let _deco_author = r.id()?;
         self.size.x = r.u32()?;
