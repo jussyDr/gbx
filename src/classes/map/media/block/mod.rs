@@ -438,11 +438,11 @@ pub struct MusicVolume {
 impl MusicVolume {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
-        R: Read + Seek,
+        R: Read,
     {
         r.chunk_id(0x030A6001)?;
         let keys = r.list(|r| {
-            r.skip(4)?;
+            r.u32()?;
             let music_volume = r.f32()?;
             let sound_volume = r.f32()?;
 
@@ -459,9 +459,13 @@ impl MusicVolume {
 /// Sound media block.
 #[derive(Clone)]
 pub struct Sound {
+    /// Number of times to play the sound.
     pub play_count: u32,
+    /// `true` if the sound should loop.
     pub is_looping: bool,
+    /// `true` if the sound is music.
     pub is_music: bool,
+    /// Optional sound.
     pub sound: Option<FileRef>,
     /// Keys of the media block.
     pub keys: Vec<key::Sound>,
@@ -470,10 +474,10 @@ pub struct Sound {
 impl Sound {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
-        R: Read + Seek,
+        R: Read,
     {
         r.chunk_id(0x030A7003)?;
-        r.skip(4)?;
+        r.u32()?;
         let play_count = r.u32()?;
         let is_looping = r.bool()?;
         let is_music = r.bool()?;

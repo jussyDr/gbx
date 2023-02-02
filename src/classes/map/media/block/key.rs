@@ -32,14 +32,18 @@ pub struct CameraShakeEffect {
 /// Music volume media block key.
 #[derive(Clone, Debug)]
 pub struct MusicVolume {
+    /// Music volume. [0.0, 1.0]
     pub music_volume: f32,
+    /// Sound volume. [0.0, 1.0]
     pub sound_volume: f32,
 }
 
 /// Sound media block key.
 #[derive(Clone, Debug)]
 pub struct Sound {
+    /// Volume of the sound. [0.0, 1.0]
     pub volume: f32,
+    /// Absolute position of the sound.
     pub position: Vec3<f32>,
 }
 

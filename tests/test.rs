@@ -78,13 +78,3 @@ test_read_map!(46951, "RZY3fk02zYm2UrTSQx3xdl1omZ7GC1c5rY4CzD5WvXs");
 test_read_map!(59807, "zZIa_CIe3s7-NFvT9kfcQh0w4wugFTRCpF-3zgDVoQM");
 test_read_map!(65123, "zTIsc39uOpH6DZel064l9vMqod207-3oWX2U8TCybhs");
 test_read_map!(81283, "kchS0VpCEqL23krWoZt5Dm1I6by_kwy384HgRNRHT8k");
-
-#[test]
-fn debug() {
-    let map =
-        Map::read_from_file("C:/Users/justin/Documents/Trackmania/Maps/My Maps/Empty.Map.Gbx")
-            .unwrap();
-
-    map.write_to_file("C:/Users/justin/Documents/Trackmania/Maps/My Maps/Generated.Map.Gbx")
-        .unwrap();
-}
