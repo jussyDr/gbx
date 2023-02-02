@@ -26,24 +26,16 @@ pub const DAY_MOOD_TIME: u16 = 33041;
 pub const SUNSET_MOOD_TIME: u16 = 52920;
 /// Day time of the default night mood.
 pub const NIGHT_MOOD_TIME: u16 = 6554;
-
-/// Medal times of a map.
-#[derive(Clone, Hash, Debug)]
-pub struct MedalTimes {
-    /// Bronze medal time in milliseconds.
-    pub bronze: u32,
-    /// Silver medal time in milliseconds.
-    pub silver: u32,
-    /// Gold medal time in milliseconds.
-    pub gold: u32,
-    /// Author medal time in milliseconds.
-    pub author: u32,
-}
-
 /// Map validation.
 pub struct Validation {
-    /// Medal times of the map.
-    pub medal_times: MedalTimes,
+    /// Bronze medal time in milliseconds.
+    pub bronze_time: u32,
+    /// Silver medal time in milliseconds.
+    pub silver_time: u32,
+    /// Gold medal time in milliseconds.
+    pub gold_time: u32,
+    /// Author medal time in milliseconds.
+    pub author_time: u32,
     /// Optional validation ghost.
     pub ghost: Option<Ghost>,
 }
@@ -483,12 +475,10 @@ pub struct EmbeddedFiles {
 /// let mut map = gbx::Map::read_from_file("MyMap.Map.Gbx")?;
 ///
 /// map.validation = Some(gbx::map::Validation {
-///     medal_times: gbx::map::MedalTimes {
-///         bronze: 400,
-///         silver: 300,
-///         gold: 200,
-///         author: 100,
-///     },
+///     bronze_time: 400,
+///     silver_time: 300,
+///     gold_time: 200,
+///     author_time: 100,
 ///     ghost: None,
 /// });
 ///
@@ -623,7 +613,7 @@ impl Map {
     }
 }
 
-fn read_medal_times<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Option<MedalTimes>>
+fn read_medal_times<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Option<(u32, u32, u32, u32)>>
 where
     R: Read,
 {
@@ -634,36 +624,43 @@ where
                 && gold != 0xFFFFFFFF
                 && author != 0xFFFFFFFF =>
         {
-            Ok(Some(MedalTimes {
-                bronze,
-                silver,
-                gold,
-                author,
-            }))
+            Ok(Some((bronze, silver, gold, author)))
         }
         _ => Ok(None),
     }
 }
 
 impl Map {
-    fn read_chunk_03043002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
-    where
-        R: Read,
-    {
-        r.u8()?;
-        r.u32()?;
-        match read_medal_times(r)? {
-            Some(medal_times) => match self.validation.as_mut() {
-                Some(validation) => validation.medal_times = medal_times,
+    fn set_validation_times(&mut self, times: Option<(u32, u32, u32, u32)>) {
+        match times {
+            Some((bronze, silver, gold, author)) => match self.validation {
+                Some(ref mut validation) => {
+                    validation.bronze_time = bronze;
+                    validation.silver_time = silver;
+                    validation.gold_time = gold;
+                    validation.author_time = author;
+                }
                 None => {
                     self.validation = Some(Validation {
-                        medal_times,
+                        bronze_time: bronze,
+                        silver_time: silver,
+                        gold_time: gold,
+                        author_time: author,
                         ghost: None,
                     })
                 }
             },
             None => self.validation = None,
         }
+    }
+
+    fn read_chunk_03043002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    where
+        R: Read,
+    {
+        r.u8()?;
+        r.u32()?;
+        self.set_validation_times(read_medal_times(r)?);
         self.cost = r.u32()?;
         let is_multilap = r.bool()?;
         r.u32()?;
@@ -805,28 +802,22 @@ impl Map {
             Event::Empty(e) if e.local_name().as_ref() == b"times" => {
                 let attributes = xml_attributes_to_map(e.attributes());
 
-                if attributes.get("bronze").unwrap() != "-1"
+                let medal_times = if attributes.get("bronze").unwrap() != "-1"
                     && attributes.get("silver").unwrap() != "-1"
                     && attributes.get("gold").unwrap() != "-1"
                     && attributes.get("authortime").unwrap() != "-1"
                 {
-                    let medal_times = MedalTimes {
-                        bronze: attributes.get("bronze").unwrap().parse().unwrap(),
-                        silver: attributes.get("silver").unwrap().parse().unwrap(),
-                        gold: attributes.get("gold").unwrap().parse().unwrap(),
-                        author: attributes.get("authortime").unwrap().parse().unwrap(),
-                    };
+                    Some((
+                        attributes.get("bronze").unwrap().parse().unwrap(),
+                        attributes.get("silver").unwrap().parse().unwrap(),
+                        attributes.get("gold").unwrap().parse().unwrap(),
+                        attributes.get("authortime").unwrap().parse().unwrap(),
+                    ))
+                } else {
+                    None
+                };
 
-                    match self.validation.as_mut() {
-                        Some(validation) => validation.medal_times = medal_times,
-                        None => {
-                            self.validation = Some(Validation {
-                                medal_times,
-                                ghost: None,
-                            })
-                        }
-                    }
-                }
+                self.set_validation_times(medal_times);
             }
             _ => panic!(),
         }
@@ -929,18 +920,7 @@ impl Map {
             r.u32()?;
 
             r.chunk_id(0x0305B004)?;
-            match read_medal_times(r)? {
-                Some(medal_times) => match self.validation.as_mut() {
-                    Some(validation) => validation.medal_times = medal_times,
-                    None => {
-                        self.validation = Some(Validation {
-                            medal_times,
-                            ghost: None,
-                        })
-                    }
-                },
-                None => self.validation = None,
-            }
+            self.set_validation_times(read_medal_times(r)?);
             let _author_score = r.u32()?;
 
             r.chunk_id(0x0305B008)?;
@@ -1687,10 +1667,17 @@ where
             w.u32(0)?;
 
             w.u32(0x0305B004)?;
-            w.u32(0xFFFFFFFF)?;
-            w.u32(0xFFFFFFFF)?;
-            w.u32(0xFFFFFFFF)?;
-            w.u32(0xFFFFFFFF)?;
+            if let Some(ref validation) = self.validation {
+                w.u32(validation.bronze_time)?;
+                w.u32(validation.silver_time)?;
+                w.u32(validation.gold_time)?;
+                w.u32(validation.author_time)?;
+            } else {
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0xFFFFFFFF)?;
+                w.u32(0xFFFFFFFF)?;
+            }
             w.u32(0)?;
 
             w.u32(0x0305B008)?;
