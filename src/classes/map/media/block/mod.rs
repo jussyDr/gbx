@@ -106,14 +106,14 @@ impl Triangles {
     }
 }
 
-/// Fx colors media block.
+/// Color media block.
 #[derive(Clone)]
-pub struct FxColors {
+pub struct Color {
     /// Keys of the media block.
-    pub keys: Vec<key::FxColors>,
+    pub keys: Vec<key::Color>,
 }
 
-impl FxColors {
+impl Color {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
@@ -150,18 +150,18 @@ impl FxColors {
             r.u32()?;
             r.u32()?;
 
-            Ok(key::FxColors)
+            Ok(key::Color)
         })?;
 
         Ok(Self { keys })
     }
 }
 
-/// Fx blur motion block.
+/// Motion blur media block.
 #[derive(Clone)]
-pub struct FxBlurMotion;
+pub struct MotionBlur;
 
-impl FxBlurMotion {
+impl MotionBlur {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
@@ -174,11 +174,11 @@ impl FxBlurMotion {
     }
 }
 
-/// Camera game media block.
+/// Player camera media block.
 #[derive(Clone)]
-pub struct CameraGame;
+pub struct PlayerCamera;
 
-impl CameraGame {
+impl PlayerCamera {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
@@ -239,11 +239,11 @@ impl Time {
     }
 }
 
-/// Camera orbital media block
+/// Orbital camera media block
 #[derive(Clone)]
-pub struct CameraOrbital;
+pub struct OrbitalCamera;
 
-impl CameraOrbital {
+impl OrbitalCamera {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
@@ -275,11 +275,11 @@ impl CameraOrbital {
     }
 }
 
-/// Camera path media block.
+/// Path camera media block.
 #[derive(Clone)]
-pub struct CameraPath;
+pub struct PathCamera;
 
-impl CameraPath {
+impl PathCamera {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read,
@@ -318,14 +318,14 @@ impl CameraPath {
     }
 }
 
-/// Camera custom media block.
+/// Custom camera media block.
 #[derive(Clone)]
-pub struct CameraCustom {
+pub struct CustomCamera {
     /// Keys of the media block.
-    pub keys: Vec<key::CameraCustom>,
+    pub keys: Vec<key::CustomCamera>,
 }
 
-impl CameraCustom {
+impl CustomCamera {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
@@ -373,7 +373,7 @@ impl CameraCustom {
             r.u32()?;
             r.u32()?;
 
-            Ok(key::CameraCustom)
+            Ok(key::CustomCamera)
         })?;
 
         Ok(Self { keys })
@@ -428,14 +428,14 @@ impl Image {
     }
 }
 
-/// Music effect media block.
+/// Music volume media block.
 #[derive(Clone)]
-pub struct MusicEffect {
+pub struct MusicVolume {
     /// Keys of the media block.
-    pub keys: Vec<key::MusicEffect>,
+    pub keys: Vec<key::MusicVolume>,
 }
 
-impl MusicEffect {
+impl MusicVolume {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
@@ -446,7 +446,7 @@ impl MusicEffect {
             let music_volume = r.f32()?;
             let sound_volume = r.f32()?;
 
-            Ok(key::MusicEffect {
+            Ok(key::MusicVolume {
                 music_volume,
                 sound_volume,
             })
@@ -659,14 +659,14 @@ impl ToneMapping {
     }
 }
 
-/// Bloom high dynamic range media block.
+/// Bloom media block.
 #[derive(Clone)]
-pub struct BloomHdr {
+pub struct Bloom {
     /// Keys of the media block.
-    pub keys: Vec<key::BloomHdr>,
+    pub keys: Vec<key::Bloom>,
 }
 
-impl BloomHdr {
+impl Bloom {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
     where
         R: Read + Seek,
@@ -678,7 +678,7 @@ impl BloomHdr {
             let streaks_intensity = r.f32()?;
             let streaks_attenuation = r.f32()?;
 
-            Ok(key::BloomHdr {
+            Ok(key::Bloom {
                 intensity,
                 streaks_intensity,
                 streaks_attenuation,

@@ -11,34 +11,63 @@ use std::io::{Read, Seek};
 #[derive(Clone)]
 #[non_exhaustive]
 pub enum Block {
+    /// 2D triangles media block.
     Triangles2D(block::Triangles),
+    /// 3D triangles media block.
     Triangles3D(block::Triangles),
-    FxColors(block::FxColors),
-    FxBlurMotion(block::FxBlurMotion),
-    CameraGame(block::CameraGame),
+    /// Color media block.
+    Color(block::Color),
+    /// Motion blur media block.
+    MotionBlur(block::MotionBlur),
+    /// Player camera media block.
+    PlayerCamera(block::PlayerCamera),
+    /// Time media block.
     Time(block::Time),
-    CameraOrbital(block::CameraOrbital),
-    CameraPath(block::CameraPath),
-    CameraCustom(block::CameraCustom),
+    /// Orbital camera media block.
+    OrbitalCamera(block::OrbitalCamera),
+    /// Path camera media block.
+    PathCamera(block::PathCamera),
+    /// Custom camera media block.
+    CustomCamera(block::CustomCamera),
+    /// Camera shake effect media block.
     CameraShakeEffect(block::CameraShakeEffect),
+    /// Image media block.
     Image(block::Image),
-    MusicEffect(block::MusicEffect),
+    /// Music volume media block.
+    MusicVolume(block::MusicVolume),
+    /// Sound media block.
     Sound(block::Sound),
+    /// Text media block.
     Text(block::Text),
+    /// Trails media block.
     Trails(block::Trails),
+    /// Transition fade media block.
     TransitionFade(block::TransitionFade),
+    /// Depth of field media block.
     DepthOfField(block::DepthOfField),
+    /// Tone mapping media block.
     ToneMapping(block::ToneMapping),
-    BloomHdr(block::BloomHdr),
+    /// Bloom media block.
+    Bloom(block::Bloom),
+    /// Time speed media block.
     TimeSpeed(block::TimeSpeed),
+    /// Manialink media block.
     Manialink(block::Manialink),
+    /// Vehicle light media block.
     VehicleLight(block::VehicleLight),
+    /// Editing cut media block.
     EditingCut(block::EditingCut),
+    /// Dirty lens media block.
     DirtyLens(block::DirtyLens),
+    /// Color grading media block.
     ColorGrading(block::ColorGrading),
+    /// Manialink interface media block.
     ManialinkInterface(block::ManialinkInterface),
+    /// Fog media block.
     Fog(block::Fog),
+    /// Entity media block.
     Entity(block::Entity),
+    /// Opponent visibility media block.
     OpponentVisibility(block::OpponentVisibility),
 }
 
@@ -110,25 +139,25 @@ impl Clip {
                         let block = match class_id {
                             0x0304B000 => Block::Triangles3D(block::Triangles::read(r)?),
                             0x0304C000 => Block::Triangles3D(block::Triangles::read(r)?),
-                            0x03080000 => Block::FxColors(block::FxColors::read(r)?),
-                            0x03082000 => Block::FxBlurMotion(block::FxBlurMotion::read(r)?),
-                            0x03084000 => Block::CameraGame(block::CameraGame::read(r)?),
+                            0x03080000 => Block::Color(block::Color::read(r)?),
+                            0x03082000 => Block::MotionBlur(block::MotionBlur::read(r)?),
+                            0x03084000 => Block::PlayerCamera(block::PlayerCamera::read(r)?),
                             0x03085000 => Block::Time(block::Time::read(r)?),
-                            0x030A0000 => Block::CameraOrbital(block::CameraOrbital::read(r)?),
-                            0x030A1000 => Block::CameraPath(block::CameraPath::read(r)?),
-                            0x030A2000 => Block::CameraCustom(block::CameraCustom::read(r)?),
+                            0x030A0000 => Block::OrbitalCamera(block::OrbitalCamera::read(r)?),
+                            0x030A1000 => Block::PathCamera(block::PathCamera::read(r)?),
+                            0x030A2000 => Block::CustomCamera(block::CustomCamera::read(r)?),
                             0x030A4000 => {
                                 Block::CameraShakeEffect(block::CameraShakeEffect::read(r)?)
                             }
                             0x030A5000 => Block::Image(block::Image::read(r)?),
-                            0x030A6000 => Block::MusicEffect(block::MusicEffect::read(r)?),
+                            0x030A6000 => Block::MusicVolume(block::MusicVolume::read(r)?),
                             0x030A7000 => Block::Sound(block::Sound::read(r)?),
                             0x030A8000 => Block::Text(block::Text::read(r)?),
                             0x030A9000 => Block::Trails(block::Trails::read(r)?),
                             0x030AB000 => Block::TransitionFade(block::TransitionFade::read(r)?),
                             0x03126000 => Block::DepthOfField(block::DepthOfField::read(r)?),
                             0x03127000 => Block::ToneMapping(block::ToneMapping::read(r)?),
-                            0x03128000 => Block::BloomHdr(block::BloomHdr::read(r)?),
+                            0x03128000 => Block::Bloom(block::Bloom::read(r)?),
                             0x03129000 => Block::TimeSpeed(block::TimeSpeed::read(r)?),
                             0x0312A000 => Block::Manialink(block::Manialink::read(r)?),
                             0x03133000 => Block::VehicleLight(block::VehicleLight::read(r)?),

@@ -5,9 +5,9 @@ use crate::Vec3;
 #[derive(Clone, Debug)]
 pub struct Effect;
 
-/// Fx colors media block key.
+/// Color media block key.
 #[derive(Clone, Debug)]
-pub struct FxColors;
+pub struct Color;
 
 /// Time media block key.
 #[derive(Clone, Debug)]
@@ -18,9 +18,9 @@ pub struct Time {
     pub tangent: f32,
 }
 
-/// Camera custom media block key.
+/// Custom camera media block key.
 #[derive(Clone, Debug)]
-pub struct CameraCustom;
+pub struct CustomCamera;
 
 /// Camera shake effect media block key.
 #[derive(Clone, Debug)]
@@ -29,9 +29,9 @@ pub struct CameraShakeEffect {
     pub speed: f32,
 }
 
-/// Music effect media block key.
+/// Music volume media block key.
 #[derive(Clone, Debug)]
-pub struct MusicEffect {
+pub struct MusicVolume {
     pub music_volume: f32,
     pub sound_volume: f32,
 }
@@ -71,9 +71,9 @@ pub struct ToneMapping {
     pub light_trail_scale: f32,
 }
 
-/// Bloom high dynamic range media block key.
+/// Bloom media block key.
 #[derive(Clone, Debug)]
-pub struct BloomHdr {
+pub struct Bloom {
     pub intensity: f32,
     pub streaks_intensity: f32,
     pub streaks_attenuation: f32,
