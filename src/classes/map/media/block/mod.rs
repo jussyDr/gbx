@@ -1,11 +1,12 @@
 /// Media block key types.
 pub mod key;
 
+use integer_enum::TryFromInteger;
+
 use crate::error::ReadResult;
 use crate::ghost::EntityRecord;
 use crate::reader::{self, Reader};
 use crate::{FileRef, InternalFileRef, Rgb};
-use num_enum::TryFromPrimitive;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
@@ -985,7 +986,7 @@ impl Entity {
 }
 
 /// Visibility of a opponent visibility media block.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger)]
 #[non_exhaustive]
 #[repr(u32)]
 pub enum Visibility {

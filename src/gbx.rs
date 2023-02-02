@@ -1,10 +1,10 @@
 use crate::error::{ReadError, ReadResult, WriteResult};
 use crate::reader::{self, Reader};
 use crate::writer::{self, Writer};
-use num_enum::{IntoPrimitive, TryFromPrimitive};
+use integer_enum::{IntoInteger, TryFromInteger};
 use std::io::{Cursor, Read, Seek, Write};
 
-#[derive(PartialEq, TryFromPrimitive, IntoPrimitive)]
+#[derive(PartialEq, TryFromInteger, IntoInteger)]
 #[repr(u8)]
 pub enum Compression {
     Compressed = b'C',

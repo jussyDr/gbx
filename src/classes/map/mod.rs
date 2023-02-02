@@ -7,7 +7,7 @@ use crate::reader::{self, Reader};
 use crate::types::{RcStr, Vec3};
 use crate::writer::{self, Writer};
 use crate::{gbx, FileRef, Ghost};
-use num_enum::{IntoPrimitive, TryFromPrimitive};
+use integer_enum::{IntoInteger, TryFromInteger};
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
 use std::borrow::BorrowMut;
@@ -49,7 +49,7 @@ pub struct Validation {
 }
 
 /// Cardinal direction of a block.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger, IntoInteger)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum Direction {
@@ -73,7 +73,7 @@ impl Sub for Direction {
 }
 
 /// Color of a block or item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum Color {
@@ -87,7 +87,7 @@ pub enum Color {
 }
 
 /// Lightmap quality of a block or item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger)]
 #[repr(u8)]
 pub enum LightmapQuality {
     #[default]
@@ -123,7 +123,7 @@ impl Ord for LightmapQuality {
 }
 
 /// Animation phase offset of a moving item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum PhaseOffset {
@@ -195,7 +195,7 @@ where
 }
 
 /// Order of a start, finish or multilap block or item in royal.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, TryFromPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, TryFromInteger)]
 #[repr(u32)]
 pub enum RoyalOrder {
     /// First.
