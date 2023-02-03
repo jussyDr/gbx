@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug, Display};
 use std::ops::{Add, Deref};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 /// A 3-dimensional vector.
@@ -91,6 +91,14 @@ impl FileRef {
         match self {
             FileRef::Internal(_) => None,
             FileRef::External(external_file_ref) => Some(external_file_ref),
+        }
+    }
+
+    /// Internal path to the file.
+    pub fn path(&self) -> &Path {
+        match *self {
+            FileRef::Internal(InternalFileRef { ref path }) => path,
+            FileRef::External(ExternalFileRef { ref path, .. }) => path,
         }
     }
 }

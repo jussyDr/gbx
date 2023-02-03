@@ -529,7 +529,6 @@ pub struct EmbeddedFiles {
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Default)]
 pub struct Map {
     /// Name of the map.
     pub name: String,
@@ -568,7 +567,7 @@ pub struct Map {
     pub music: Option<FileRef>,
     /// All items placed inside of the map.
     pub items: Vec<Item>,
-    /// All blocks inside the map, including grass blocks and clips.
+    /// All grass blocks and clips inside the map.
     ///
     /// The `skin` and `waypoint_property` fields of the baked blocks are always `None`.
     pub baked_blocks: Vec<BlockType>,
@@ -823,12 +822,16 @@ impl Map {
         match xml_reader.read_event().unwrap() {
             Event::Empty(e) if e.local_name().as_ref() == b"desc" => {
                 let attributes = xml_attributes_to_map(e.attributes());
-                self.day_time = match attributes.get("mood").unwrap().as_str() {
+                let mood = attributes.get("mood").unwrap().as_str();
+                let mood = mood
+                    .strip_suffix("16x12")
+                    .or(mood.strip_suffix(" (no stadium)"))
+                    .unwrap_or(mood);
+                self.day_time = match mood {
                     "Sunrise" => SUNRISE_MOOD_TIME,
                     "Day" => DAY_MOOD_TIME,
                     "Sunset" => SUNSET_MOOD_TIME,
                     "Night" => NIGHT_MOOD_TIME,
-                    "Day16x12" => DAY_MOOD_TIME,
                     _ => panic!(),
                 };
                 self.cost = attributes.get("displaycost").unwrap().parse().unwrap();
@@ -1626,6 +1629,51 @@ impl Map {
         w.u32(0)?;
 
         Ok(())
+    }
+}
+
+impl Default for Map {
+    fn default() -> Self {
+        let mut baked_blocks = Vec::with_capacity(2304);
+        let grass_model_id = Id::new(String::from("Grass"));
+
+        for x in 0..48 {
+            for z in 0..48 {
+                baked_blocks.push(BlockType::Normal(Block {
+                    model_id: Id::clone(&grass_model_id),
+                    coord: Vec3 { x, y: 8, z },
+                    is_ground: true,
+                    ..Default::default()
+                }))
+            }
+        }
+
+        Self {
+            name: String::from("Unnamed"),
+            uid: Id::default(),
+            author_name: String::default(),
+            author_uid: Id::default(),
+            author_zone: String::default(),
+            validation: None,
+            cost: 312,
+            num_laps: None,
+            num_cps: 0,
+            no_stadium: false,
+            thumbnail: None,
+            texture_mod: None,
+            day_time: DAY_MOOD_TIME,
+            size: Vec3 { x: 48, y: 8, z: 48 },
+            blocks: vec![],
+            music: None,
+            items: vec![],
+            baked_blocks,
+            intro_media: None,
+            podium_media: None,
+            in_game_media: None,
+            end_race_media: None,
+            ambiance_media: None,
+            embedded_files: None,
+        }
     }
 }
 
