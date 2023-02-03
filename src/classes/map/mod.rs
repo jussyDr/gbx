@@ -18,14 +18,14 @@ use std::io::{BufReader, BufWriter, Cursor, Read, Seek, Write};
 use std::ops::Sub;
 use std::path::Path;
 
+/// Day time of the default night mood.
+pub const NIGHT_MOOD_TIME: u16 = 6554;
 /// Day time of the default sunrise mood.
 pub const SUNRISE_MOOD_TIME: u16 = 20808;
 /// Day time of the default day mood.
 pub const DAY_MOOD_TIME: u16 = 33041;
 /// Day time of the default sunset mood.
 pub const SUNSET_MOOD_TIME: u16 = 52920;
-/// Day time of the default night mood.
-pub const NIGHT_MOOD_TIME: u16 = 6554;
 
 /// Map validation.
 pub struct Validation {
@@ -1414,6 +1414,28 @@ impl Map {
         Ok(())
     }
 
+    fn mood_id(&self) -> &'static str {
+        match self.day_time {
+            0..=16383 => "Night",
+            16384..=32767 => "Sunrise",
+            32768..=49151 => "Day",
+            49152..=65535 => "Sunset",
+        }
+    }
+
+    fn deco_id(&self) -> String {
+        let mut deco_id = String::new();
+
+        if self.no_stadium {
+            deco_id += "NoStadium";
+        }
+
+        deco_id += "48x48";
+        deco_id += self.mood_id();
+
+        deco_id
+    }
+
     fn write_chunk_03043003<W, I, N>(&self, mut w: Writer<W, I, N>) -> WriteResult
     where
         W: Write,
@@ -1427,7 +1449,7 @@ impl Map {
         w.u8(6)?;
         w.u32(0)?;
         w.u32(0)?;
-        w.id(Some("48x48Day"))?;
+        w.id(Some(&self.deco_id()))?;
         w.u32(26)?;
         w.id(Some("Nadeo"))?;
         w.u32(0)?;
@@ -1501,7 +1523,7 @@ impl Map {
                 xml_writer
                     .create_element("desc")
                     .with_attribute(("envir", "Stadium"))
-                    .with_attribute(("mood", "Day"))
+                    .with_attribute(("mood", self.mood_id()))
                     .with_attribute(("type", "Race"))
                     .with_attribute(("maptype", "TrackMania\\TM_Race"))
                     .with_attribute(("mapstyle", ""))
@@ -1835,7 +1857,7 @@ where
         w.u32(26)?;
         w.id(Some(&self.author_uid))?;
         w.string(&self.name)?;
-        w.id(Some("48x48Day"))?;
+        w.id(Some(&self.deco_id()))?;
         w.u32(26)?;
         w.id(Some("Nadeo"))?;
         w.u32(48)?;
@@ -1844,8 +1866,58 @@ where
         w.u32(0)?;
         w.u32(6)?;
         w.u32(self.blocks.len() as u32)?;
-        for _block in &self.blocks {
-            panic!()
+        for block in &self.blocks {
+            let mut flags = 0;
+
+            w.id(Some(block.model_id()))?;
+
+            match block {
+                BlockType::Normal(block) => {
+                    w.u8(block.dir.into())?;
+                    w.u8(block.coord.x)?;
+                    w.u8(block.coord.y)?;
+                    w.u8(block.coord.z)?;
+
+                    if block.is_ground {
+                        flags |= 0x00001000;
+                    }
+
+                    if block.variant_index == 1 {
+                        flags |= 0x00200000;
+                    }
+
+                    if block.is_ghost {
+                        flags |= 0x10000000;
+                    }
+                }
+                BlockType::Free(..) => {
+                    w.u8(0)?;
+                    w.u8(0)?;
+                    w.u8(0)?;
+                    w.u8(0)?;
+
+                    flags |= 0x20000000;
+                }
+            }
+
+            if block.skin().is_some() {
+                flags |= 0x00008000;
+            }
+
+            if block.waypoint_property().is_some() {
+                flags |= 0x00100000;
+            }
+
+            w.u32(flags)?;
+
+            if let Some(_skin) = block.skin() {
+                w.id(Some(""))?;
+                w.u32(0xFFFFFFFF)?;
+            }
+
+            if let Some(_waypoint_property) = block.waypoint_property() {
+                w.node(0x2E009000, |_w| panic!())?;
+            }
         }
 
         w.u32(0x03043022)?;
