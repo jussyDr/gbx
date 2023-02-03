@@ -129,7 +129,7 @@ where
         let compressed_body = r.bytes(compressed_body_size as usize)?;
         let mut body = vec![0; body_size as usize];
 
-        rust_lzo::LZOContext::decompress_to_slice(&compressed_body, &mut body);
+        lzo1x::decompress_to_slice(&compressed_body, &mut body).unwrap();
 
         let mut r = Reader::with_id_and_node_state(
             Cursor::new(body),
@@ -254,8 +254,8 @@ where
         w.u32(0xFACADE01)?;
     }
 
-    let mut output = vec![0; rust_lzo::worst_compress(body.len())];
-    let (compressed_body, _) = rust_lzo::LZOContext::new().compress_to_slice(&body, &mut output);
+    let mut output = vec![0; lzo1x::worst_compress(body.len())];
+    let compressed_body = lzo1x::compress_to_slice(&body, &mut output);
 
     //let compressed_body = lzo1x::compress_to_slice(&body, &mut output);
 
