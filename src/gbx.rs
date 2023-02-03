@@ -251,6 +251,8 @@ where
         let mut w =
             Writer::with_id_and_node_state(&mut body, writer::IdState::new(), &mut node_state);
         node.write_body(&mut w)?;
+
+        w.u32(0xFACADE01)?;
     }
 
     let mut output = vec![0; lzo1x::worst_compress(body.len())];

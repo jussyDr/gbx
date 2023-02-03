@@ -26,6 +26,7 @@ pub const DAY_MOOD_TIME: u16 = 33041;
 pub const SUNSET_MOOD_TIME: u16 = 52920;
 /// Day time of the default night mood.
 pub const NIGHT_MOOD_TIME: u16 = 6554;
+
 /// Map validation.
 pub struct Validation {
     /// Bronze medal time in milliseconds.
@@ -1200,6 +1201,8 @@ impl Map {
                 continue;
             }
 
+            let is_ground = flags & 0x00001000 != 0;
+
             if flags & 0x00008000 != 0 {
                 r.id()?;
                 r.u32()?;
@@ -1217,6 +1220,7 @@ impl Map {
                     model_id,
                     dir,
                     coord,
+                    is_ground,
                     is_ghost,
                     ..Default::default()
                 })
@@ -1463,9 +1467,9 @@ impl Map {
             .create_element("header")
             .with_attribute(("type", "map"))
             .with_attribute(("exever", "3.3.0"))
-            .with_attribute(("exebuild", "2023-01-13_16_25"))
+            .with_attribute(("exebuild", "2023-01-26_15_32"))
             .with_attribute(("title", "TMStadium"))
-            .with_attribute(("lightmap", "8"))
+            .with_attribute(("lightmap", "0"))
             .write_inner_content(|xml_writer| {
                 xml_writer
                     .create_element("ident")
@@ -1517,7 +1521,10 @@ impl Map {
                     ))
                     .write_empty()?;
 
-                xml_writer.create_element("playermodel").write_empty()?;
+                xml_writer
+                    .create_element("playermodel")
+                    .with_attribute(("id", ""))
+                    .write_empty()?;
 
                 let bronze_time = self
                     .validation
@@ -1548,6 +1555,7 @@ impl Map {
                         "authortime",
                         author_time.unwrap_or(String::from("-1")).as_str(),
                     ))
+                    .with_attribute(("authorscore", "0"))
                     .write_empty()?;
 
                 xml_writer
@@ -1861,7 +1869,7 @@ where
 
         w.skippable_chunk(0x03043029, |mut w| {
             w.bytes(&[0; 16])?;
-            w.u32(0x51F6B4C7)?;
+            w.u32(0xFB0A9ED6)?;
 
             Ok(())
         })?;
@@ -1942,8 +1950,20 @@ where
         w.skippable_chunk(0x03043043, |mut w| {
             let mut bytes = vec![];
             {
-                let mut w = Writer::new(&mut bytes);
-                w.u32(0)?;
+                let mut w = Writer::with_id_state(&mut bytes, writer::IdState::new());
+                w.u32(2304)?;
+                for _ in 0..2304 {
+                    w.u32(0x0311D000)?;
+
+                    w.u32(0x0311D002)?;
+                    w.u32(1)?;
+                    w.id(Some("VoidToGrass"))?;
+                    w.u32(0)?;
+                    w.u32(0)?;
+                    w.id(Some("Grass"))?;
+
+                    w.u32(0xFACADE01)?;
+                }
             }
 
             w.u32(0)?;
@@ -1960,8 +1980,25 @@ where
 
                 w.u32(0x11002000)?;
                 w.u32(6)?;
+                w.u8(2)?;
+                w.u8(2)?;
+                w.u8(7)?;
+                w.u8(0)?;
+                w.u8(2)?;
+                w.u8(2)?;
+                w.u8(25)?;
+                w.bytes(b"LibMapType_MapTypeVersion")?;
+                w.u8(0)?;
+                w.u8(1)?;
                 w.u8(0)?;
                 w.u8(0)?;
+                w.u8(0)?;
+                w.u8(28)?;
+                w.bytes(b"Race_AuthorRaceWaypointTimes")?;
+                w.u8(1)?;
+                w.u8(0)?;
+
+                w.u32(0xFACADE01)?;
             }
 
             w.u32(0)?;
@@ -1986,6 +2023,10 @@ where
 
                 match baked_block {
                     BlockType::Normal(block) => {
+                        if block.is_ground {
+                            flags |= 0x00001000;
+                        }
+
                         if block.is_ghost {
                             flags |= 0x10000000;
                         }
@@ -2055,7 +2096,7 @@ where
         w.skippable_chunk(0x03043051, |mut w| {
             w.u32(0)?;
             w.id(Some("TMStadium"))?;
-            w.string("date=2023-01-13_16_25 git=116238-efed8bf632f GameVersion=3.3.0")?;
+            w.string("date=2023-01-26_15_32 git=116308-bbf6df4c7ba GameVersion=3.3.0")?;
 
             Ok(())
         })?;
@@ -2091,10 +2132,12 @@ where
             Ok(())
         })?;
 
+        w.skippable_chunk(0x03043055, |_| Ok(()))?;
+
         w.skippable_chunk(0x03043056, |mut w| {
             w.u32(3)?;
             w.u32(0)?;
-            w.u32(self.day_time as u32)?;
+            w.u32(0xFFFFFFFF)?; // w.u32(self.day_time as u32)?;
             w.u32(0)?;
             w.u32(0)?;
             w.u32(300000)?;
