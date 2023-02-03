@@ -24,7 +24,7 @@ pub struct NodeState {
 
 impl NodeState {
     pub fn new() -> Self {
-        Self { num_nodes: 0 }
+        Self { num_nodes: 1 }
     }
 
     pub fn num_nodes(&self) -> u32 {
@@ -175,8 +175,8 @@ where
     where
         F: Fn(&mut Self) -> WriteResult,
     {
-        self.node_state.borrow_mut().num_nodes += 1;
         self.u32(self.node_state.borrow().num_nodes)?;
+        self.node_state.borrow_mut().num_nodes += 1;
         self.u32(class_id)?;
         write_fn(self)?;
         self.u32(0xFACADE01)

@@ -86,13 +86,3 @@ fn write_read_default_map() {
     map.write_to(&mut buf).unwrap();
     Map::read_from(buf.as_slice()).unwrap();
 }
-
-#[test]
-fn debug() {
-    let mut map =
-        Map::read_from_file("C:/Users/justin/Documents/Trackmania/Maps/My Maps/Empty.Map.Gbx")
-            .unwrap();
-    map.name = "Generated".to_owned();
-    map.write_to_file("C:/Users/justin/Documents/Trackmania/Maps/My Maps/Generated.Map.Gbx")
-        .unwrap();
-}

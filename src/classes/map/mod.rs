@@ -1419,7 +1419,7 @@ impl Map {
         W: Write,
         I: BorrowMut<writer::IdState>,
     {
-        w.u8(13)?;
+        w.u8(11)?;
         w.id(Some(&self.uid))?;
         w.u32(26)?;
         w.id(Some(&self.author_uid))?;
@@ -1440,7 +1440,7 @@ impl Map {
         w.u32(0)?;
         w.string("TrackMania\\TM_Race")?;
         w.u32(0)?;
-        w.u64(0)?;
+        w.u64(0xFF58B6734983CC85)?;
         w.u8(0)?;
         w.id(Some("TMStadium"))?;
 
@@ -2137,7 +2137,7 @@ where
         w.skippable_chunk(0x03043056, |mut w| {
             w.u32(3)?;
             w.u32(0)?;
-            w.u32(0xFFFFFFFF)?; // w.u32(self.day_time as u32)?;
+            w.u32(self.day_time as u32)?;
             w.u32(0)?;
             w.u32(0)?;
             w.u32(300000)?;
