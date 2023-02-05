@@ -2,12 +2,14 @@
 pub mod media;
 
 use crate::error::{ReadError, ReadResult, WriteError, WriteResult};
-use crate::gbx::{Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader, WriteBody, WriteHeader};
+use crate::gbx::{
+    self, Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader, WriteBody, WriteHeader,
+};
+use crate::ghost::Ghost;
 use crate::reader::{self, Reader};
-use crate::types::{Id, Vec3};
+use crate::types::{ExternalFileRef, FileRef, Id, Vec3};
 use crate::writer::{self, Writer};
-use crate::{gbx, ExternalFileRef, FileRef, Ghost};
-use int_enum::{IntoInteger, TryFromInteger};
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
 use std::borrow::BorrowMut;
@@ -42,7 +44,7 @@ pub struct Validation {
 }
 
 /// Cardinal direction of a block.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger, IntoInteger)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum Direction {
@@ -66,7 +68,7 @@ impl Sub for Direction {
 }
 
 /// Color of a block or item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger, IntoInteger)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum Color {
@@ -86,7 +88,7 @@ pub enum Color {
 }
 
 /// Lightmap quality of a block or item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger, IntoInteger)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
 #[repr(u8)]
 pub enum LightmapQuality {
     /// Normal lightmap quality.
@@ -129,7 +131,7 @@ impl Ord for LightmapQuality {
 }
 
 /// Animation phase offset of a moving item.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger, IntoInteger)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(u8)]
 pub enum PhaseOffset {
@@ -209,7 +211,7 @@ where
 }
 
 /// Order of a start, finish or multilap block or item in royal.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, TryFromInteger)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, TryFromPrimitive)]
 #[repr(u32)]
 pub enum RoyalOrder {
     /// First.
@@ -1641,7 +1643,7 @@ impl Default for Map {
             for z in 0..48 {
                 baked_blocks.push(BlockType::Normal(Block {
                     model_id: Id::clone(&grass_model_id),
-                    coord: Vec3 { x, y: 8, z },
+                    coord: Vec3 { x, y: 9, z },
                     is_ground: true,
                     ..Default::default()
                 }))

@@ -18,10 +18,11 @@ debug = true
 
 [dependencies]
 indexmap = "1.9.2"
-int-enum = { git = "https://github.com/jussyDr/int-enum" }
 lzo1x = { git = "https://github.com/jussyDr/lzo1x" }
+num_enum = "0.5.9"
 quick-xml = "0.27.1"
 serde = { version = "1.0.152", features = ["derive"], optional = true }
+uuid = { version = "1.3.0", features = ["v4"] }
 
 [dev-dependencies]
 criterion = "0.4.0"

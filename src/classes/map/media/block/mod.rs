@@ -5,7 +5,7 @@ use crate::error::ReadResult;
 use crate::ghost::EntityRecord;
 use crate::reader::{self, Reader};
 use crate::{FileRef, InternalFileRef, Rgb};
-use int_enum::TryFromInteger;
+use num_enum::TryFromPrimitive;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
@@ -985,7 +985,7 @@ impl Entity {
 }
 
 /// Visibility of a opponent visibility media block.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromInteger)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive)]
 #[non_exhaustive]
 #[repr(u32)]
 pub enum Visibility {
