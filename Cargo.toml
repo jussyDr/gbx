@@ -18,6 +18,7 @@ debug = true
 
 [dependencies]
 indexmap = "1.9.2"
+libz-sys = "1.1.8"
 lzo1x = { git = "https://github.com/jussyDr/lzo1x" }
 num_enum = "0.5.9"
 quick-xml = "0.27.1"

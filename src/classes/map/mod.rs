@@ -534,8 +534,6 @@ pub struct EmbeddedFiles {
 pub struct Map {
     /// Name of the map.
     pub name: String,
-    /// Unique ID of the map.
-    pub uid: Id,
     /// Name of the map author.
     pub author_name: String,
     /// Unique ID of the map author.
@@ -585,12 +583,23 @@ pub struct Map {
     pub ambiance_media: Option<media::Clip>,
     /// Files embedded in the map.
     pub embedded_files: Option<EmbeddedFiles>,
+
+    uid: Option<Id>,
 }
 
 impl Map {
     /// Create a new map with default values.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Get the unique ID of the map.
+    ///
+    /// The ID is a 20 byte value which is URL-safe Base63 encoded.
+    /// The first 16 bytes are a v4 UUID,
+    /// and the last 4 bytes a ZLIB CRC-32 checksum of the map without the GBX user data.
+    pub fn uid(&self) -> Option<Id> {
+        self.uid.clone()
     }
 
     /// Read a map from the given `reader`.
@@ -746,7 +755,7 @@ impl Map {
         I: BorrowMut<reader::IdState>,
     {
         r.u8()?;
-        self.uid = r.id()?;
+        self.uid = Some(r.id()?);
         r.u32()?;
         self.author_uid = r.id()?;
         self.name = r.string()?;
@@ -813,7 +822,7 @@ impl Map {
         match xml_reader.read_event().unwrap() {
             Event::Empty(e) if e.local_name().as_ref() == b"ident" => {
                 let attributes = xml_attributes_to_map(e.attributes());
-                self.uid = Id::new(attributes.get("uid").unwrap().clone());
+                self.uid = Some(Id::new(attributes.get("uid").unwrap().clone()));
                 self.name = attributes.get("name").unwrap().clone();
                 self.author_uid = Id::new(attributes.get("author").unwrap().clone());
                 self.author_zone = attributes.get("authorzone").unwrap().clone();
@@ -1447,7 +1456,7 @@ impl Map {
         I: BorrowMut<writer::IdState>,
     {
         w.u8(11)?;
-        w.id(Some(&self.uid))?;
+        w.id(self.uid.as_ref().map(|id| id.as_str()))?;
         w.u32(26)?;
         w.id(Some(&self.author_uid))?;
         w.string(&self.name)?;
@@ -1500,7 +1509,10 @@ impl Map {
             .write_inner_content(|xml_writer| {
                 xml_writer
                     .create_element("ident")
-                    .with_attribute(("uid", self.uid.as_str()))
+                    .with_attribute((
+                        "uid",
+                        self.uid.as_ref().map(|id| id.as_str()).unwrap_or_default(),
+                    ))
                     .with_attribute(("name", self.name.as_str()))
                     .with_attribute(("author", self.author_uid.as_str()))
                     .with_attribute(("authorzone", self.author_zone.as_str()))
@@ -1652,7 +1664,7 @@ impl Default for Map {
 
         Self {
             name: String::from("Unnamed"),
-            uid: Id::default(),
+            uid: None,
             author_name: String::default(),
             author_uid: Id::default(),
             author_zone: String::default(),
@@ -1903,7 +1915,7 @@ where
         })?;
 
         w.u32(0x0304301F)?;
-        w.id(Some(&self.uid))?;
+        w.id(self.uid.as_ref().map(|id| id.as_str()))?;
         w.u32(26)?;
         w.id(Some(&self.author_uid))?;
         w.string(&self.name)?;
