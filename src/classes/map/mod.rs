@@ -597,7 +597,8 @@ impl Map {
     ///
     /// The ID is a 20 byte value which is URL-safe Base63 encoded.
     /// The first 16 bytes are a v4 UUID,
-    /// and the last 4 bytes a ZLIB CRC-32 checksum of the map without the GBX user data.
+    /// and the last 4 bytes a ZLIB CRC-32 checksum of the map serialized as
+    /// GBX without user data and with an uncompressed body.
     pub fn uid(&self) -> Option<Id> {
         self.uid.clone()
     }
