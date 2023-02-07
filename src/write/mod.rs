@@ -56,6 +56,18 @@ impl<'a, T> WriterBuilder<'a, T> {
     /// Set whether or not to write the user data.
     ///
     /// Set to `true` by default.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # || -> gbx::write::Result {
+    /// let map = gbx::Map::new();
+    ///
+    /// map.writer()
+    ///     .user_data(false)
+    ///     .write_to_file("MyMap.Map.Gbx")?;
+    /// # Ok(()) };
+    /// ```
     pub fn user_data(mut self, write_user_data: bool) -> Self {
         self.write_user_data = write_user_data;
         self
@@ -64,6 +76,18 @@ impl<'a, T> WriterBuilder<'a, T> {
     /// Set whether or not to compress the body.
     ///
     /// Set to `true` by default.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # || -> gbx::write::Result {
+    /// let map = gbx::Map::new();
+    ///
+    /// map.writer()
+    ///     .compress_body(false)
+    ///     .write_to_file("MyMap.Map.Gbx")?;
+    /// # Ok(()) };
+    /// ```
     pub fn compress_body(mut self, compress_body: bool) -> Self {
         self.compress_body = compress_body;
         self

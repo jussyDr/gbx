@@ -501,7 +501,7 @@ pub struct EmbeddedFiles {
 /// Change the validation of a map.
 /// ```no_run
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// let mut map = gbx::Map::read_from_file("MyMap.Map.Gbx")?;
+/// let mut map = gbx::Map::reader().read_from_file("Unvalidated.Map.Gbx")?;
 ///
 /// map.validation = Some(gbx::map::Validation {
 ///     bronze_time: 400,
@@ -511,9 +511,8 @@ pub struct EmbeddedFiles {
 ///     ghost: None,
 /// });
 ///
-/// map.write_to_file("MyMap.Map.Gbx")?;
-/// # Ok(())
-/// # }
+/// map.writer().write_to_file("Validated.Map.Gbx")?;
+/// # Ok(()) }
 /// ```
 pub struct Map {
     /// Name of the map.

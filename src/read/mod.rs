@@ -67,6 +67,16 @@ impl<T> ReaderBuilder<T> {
     /// Set whether or not to read the user data.
     ///
     /// Set to `true` by default.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # || -> gbx::read::Result<()> {
+    /// let map = gbx::Map::reader()
+    ///     .user_data(false)
+    ///     .read_from_file("MyMap.Map.Gbx")?;
+    /// # Ok(()) };
+    /// ```
     pub fn user_data(mut self, read_user_data: bool) -> Self {
         self.read_user_data = read_user_data;
         self
@@ -75,6 +85,16 @@ impl<T> ReaderBuilder<T> {
     /// Set whether or not to read the body.
     ///
     /// Set to `true` by default.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # || -> gbx::read::Result<()> {
+    /// let map = gbx::Map::reader()
+    ///     .body(false)
+    ///     .read_from_file("MyMap.Map.Gbx")?;
+    /// # Ok(()) };
+    /// ```
     pub fn body(mut self, read_body: bool) -> Self {
         self.read_body = read_body;
         self
