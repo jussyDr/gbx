@@ -16,7 +16,7 @@ fn bench(c: &mut Criterion) {
 
     c.bench_function(&format!("read block {block_id}"), |b| {
         b.iter_with_large_drop(|| {
-            black_box(Block::read_from(buf.as_slice()).ok());
+            black_box(Block::reader().read_from(buf.as_slice()).ok());
         })
     });
 
@@ -33,7 +33,7 @@ fn bench(c: &mut Criterion) {
 
     c.bench_function(&format!("read map {map_id}"), |b| {
         b.iter_with_large_drop(|| {
-            black_box(Map::read_from(buf.as_slice()).ok());
+            black_box(Map::reader().read_from(buf.as_slice()).ok());
         })
     });
 }

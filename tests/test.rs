@@ -7,7 +7,7 @@ fn test_read_block(block_id: u32, hash: &str) {
     let file = test_util::fetch_file(&url, hash, env!("CARGO_TARGET_TMPDIR")).unwrap();
     let reader = BufReader::new(file);
 
-    Block::read_from(reader).unwrap();
+    Block::reader().read_from(reader).unwrap();
 }
 
 macro_rules! test_read_block {
@@ -31,7 +31,7 @@ fn test_read_item(item_id: u32, hash: &str) {
     let file = test_util::fetch_file(&url, hash, env!("CARGO_TARGET_TMPDIR")).unwrap();
     let reader = BufReader::new(file);
 
-    Item::read_from(reader).unwrap();
+    Item::reader().read_from(reader).unwrap();
 }
 
 macro_rules! test_read_item {
@@ -57,7 +57,7 @@ fn test_read_map(map_id: u32, hash: &str) {
     let file = test_util::fetch_file(&url, hash, env!("CARGO_TARGET_TMPDIR")).unwrap();
     let reader = BufReader::new(file);
 
-    Map::read_from(reader).unwrap();
+    Map::reader().read_from(reader).unwrap();
 }
 
 macro_rules! test_read_map {
@@ -83,6 +83,6 @@ test_read_map!(81283, "kchS0VpCEqL23krWoZt5Dm1I6by_kwy384HgRNRHT8k");
 fn write_read_default_map() {
     let map = Map::default();
     let mut buf = vec![];
-    map.write_to(&mut buf).unwrap();
-    Map::read_from(buf.as_slice()).unwrap();
+    map.writer().write_to(&mut buf).unwrap();
+    Map::reader().read_from(buf.as_slice()).unwrap();
 }

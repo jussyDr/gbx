@@ -1,9 +1,10 @@
 use crate::error::ReadResult;
-use crate::gbx::{self, Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader};
+use crate::gbx::{self, ReadBodyChunk};
 use crate::reader::{self, Reader};
-use crate::{Block, Item};
+use crate::{Block, Item, ReaderBuilder};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
+use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 /// Material of a model.
@@ -17,7 +18,17 @@ impl Material {
         I: BorrowMut<reader::IdState>,
     {
         let mut material = Self::default();
-        gbx::read_body(&mut material, r)?;
+
+        gbx::read_body(
+            &mut material,
+            r,
+            vec![
+                (0x090FD000, ReadBodyChunk::Read(Self::read_chunk_090fd000)),
+                (0x090FD001, ReadBodyChunk::Read(Self::read_chunk_090fd001)),
+                (0x090FD002, ReadBodyChunk::Read(Self::read_chunk_090fd002)),
+            ],
+        )?;
+
         Ok(material)
     }
 
@@ -81,20 +92,6 @@ impl Material {
     }
 }
 
-impl<R, I, N> ReadBody<R, I, N> for Material
-where
-    R: Read + Seek,
-    I: BorrowMut<reader::IdState>,
-{
-    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
-        &[
-            (0x090FD000, ReadChunk::Read(Self::read_chunk_090fd000)),
-            (0x090FD001, ReadChunk::Read(Self::read_chunk_090fd001)),
-            (0x090FD002, ReadChunk::Read(Self::read_chunk_090fd002)),
-        ]
-    }
-}
-
 /// Model.
 #[derive(Clone, Default)]
 pub struct Model {
@@ -113,7 +110,20 @@ impl Crystal {
         N: BorrowMut<reader::NodeState>,
     {
         let mut crystal = Self::default();
-        gbx::read_body(&mut crystal, r)?;
+
+        gbx::read_body(
+            &mut crystal,
+            r,
+            vec![
+                (0x09051000, ReadBodyChunk::Read(Self::read_chunk_09051000)),
+                (0x09003003, ReadBodyChunk::Read(Self::read_chunk_09003003)),
+                (0x09003004, ReadBodyChunk::Skip),
+                (0x09003005, ReadBodyChunk::Read(Self::read_chunk_09003005)),
+                (0x09003006, ReadBodyChunk::Read(Self::read_chunk_09003006)),
+                (0x09003007, ReadBodyChunk::Read(Self::read_chunk_09003007)),
+            ],
+        )?;
+
         Ok(crystal)
     }
 
@@ -285,32 +295,97 @@ impl DerefMut for Crystal {
     }
 }
 
-impl<R, I, N> ReadBody<R, I, N> for Crystal
-where
-    R: Read + Seek,
-    I: BorrowMut<reader::IdState>,
-    N: BorrowMut<reader::NodeState>,
-{
-    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
-        &[
-            (0x09051000, ReadChunk::Read(Self::read_chunk_09051000)),
-            (0x09003003, ReadChunk::Read(Self::read_chunk_09003003)),
-            (0x09003004, ReadChunk::Skip),
-            (0x09003005, ReadChunk::Read(Self::read_chunk_09003005)),
-            (0x09003006, ReadChunk::Read(Self::read_chunk_09003006)),
-            (0x09003007, ReadChunk::Read(Self::read_chunk_09003007)),
-        ]
+#[derive(Clone, Default)]
+pub struct ItemModel<T> {
+    phantom: PhantomData<T>,
+}
+
+impl ItemModel<Block> {
+    pub(crate) fn reader() -> ReaderBuilder<Block> {
+        ReaderBuilder::new(
+            Block::default,
+            0x2E002000,
+            vec![
+                (0x2e001003, |n, r| Self::read_chunk_2e001003(n, r)),
+                (0x2e001004, |n, r| Self::read_chunk_2e001004(n, r)),
+                (0x2e001006, |n, r| Self::read_chunk_2e001006(n, r)),
+                (0x2e002000, |n, r| Self::read_chunk_2e002000(n, r)),
+                (0x2e002001, |n, r| Self::read_chunk_2e002001(n, r)),
+            ],
+            vec![
+                (0x2E001009, ReadBodyChunk::Read(Self::read_chunk_2e001009)),
+                (0x2E00100B, ReadBodyChunk::Read(Self::read_chunk_2e00100b)),
+                (0x2E00100C, ReadBodyChunk::Read(Self::read_chunk_2e00100c)),
+                (0x2E00100D, ReadBodyChunk::Read(Self::read_chunk_2e00100d)),
+                (0x2E00100E, ReadBodyChunk::Read(Self::read_chunk_2e00100e)),
+                (0x2E001010, ReadBodyChunk::Read(Self::read_chunk_2e001010)),
+                (0x2E001011, ReadBodyChunk::Read(Self::read_chunk_2e001011)),
+                (0x2E002008, ReadBodyChunk::Read(Self::read_chunk_2e002008)),
+                (0x2E002009, ReadBodyChunk::Read(Self::read_chunk_2e002009)),
+                (0x2E00200C, ReadBodyChunk::Read(Self::read_chunk_2e00200c)),
+                (0x2E002012, ReadBodyChunk::Read(Self::read_chunk_2e002012)),
+                (0x2E002015, ReadBodyChunk::Read(Self::read_chunk_2e002015)),
+                (0x2E002019, ReadBodyChunk::Read(Self::read_chunk_2e002019)),
+                (0x2E00201A, ReadBodyChunk::Read(Self::read_chunk_2e00201a)),
+                (0x2E00201C, ReadBodyChunk::Read(Self::read_chunk_2e00201c)),
+                (0x2E00201E, ReadBodyChunk::Read(Self::read_chunk_2e00201e)),
+                (0x2E00201F, ReadBodyChunk::Read(Self::read_chunk_2e00201f)),
+                (0x2E002020, ReadBodyChunk::Read(Self::read_chunk_2e002020)),
+                (0x2E002021, ReadBodyChunk::Read(Self::read_chunk_2e002021)),
+                (0x2E002023, ReadBodyChunk::Read(Self::read_chunk_2e002023)),
+                (0x2E002024, ReadBodyChunk::Skip),
+                (0x2E002025, ReadBodyChunk::Skip),
+                (0x2E002026, ReadBodyChunk::Skip),
+                (0x2E002027, ReadBodyChunk::Skip),
+            ],
+        )
     }
 }
 
-#[derive(Clone)]
-pub(crate) enum ItemModel {
-    Block(Block),
-    Item(Item),
+impl ItemModel<Item> {
+    pub(crate) fn reader() -> ReaderBuilder<Item> {
+        ReaderBuilder::new(
+            Item::default,
+            0x2E002000,
+            vec![
+                (0x2e001003, |n, r| Self::read_chunk_2e001003(n, r)),
+                (0x2e001004, |n, r| Self::read_chunk_2e001004(n, r)),
+                (0x2e001006, |n, r| Self::read_chunk_2e001006(n, r)),
+                (0x2e002000, |n, r| Self::read_chunk_2e002000(n, r)),
+                (0x2e002001, |n, r| Self::read_chunk_2e002001(n, r)),
+            ],
+            vec![
+                (0x2E001009, ReadBodyChunk::Read(Self::read_chunk_2e001009)),
+                (0x2E00100B, ReadBodyChunk::Read(Self::read_chunk_2e00100b)),
+                (0x2E00100C, ReadBodyChunk::Read(Self::read_chunk_2e00100c)),
+                (0x2E00100D, ReadBodyChunk::Read(Self::read_chunk_2e00100d)),
+                (0x2E00100E, ReadBodyChunk::Read(Self::read_chunk_2e00100e)),
+                (0x2E001010, ReadBodyChunk::Read(Self::read_chunk_2e001010)),
+                (0x2E001011, ReadBodyChunk::Read(Self::read_chunk_2e001011)),
+                (0x2E002008, ReadBodyChunk::Read(Self::read_chunk_2e002008)),
+                (0x2E002009, ReadBodyChunk::Read(Self::read_chunk_2e002009)),
+                (0x2E00200C, ReadBodyChunk::Read(Self::read_chunk_2e00200c)),
+                (0x2E002012, ReadBodyChunk::Read(Self::read_chunk_2e002012)),
+                (0x2E002015, ReadBodyChunk::Read(Self::read_chunk_2e002015)),
+                (0x2E002019, ReadBodyChunk::Read(Self::read_chunk_2e002019)),
+                (0x2E00201A, ReadBodyChunk::Read(Self::read_chunk_2e00201a)),
+                (0x2E00201C, ReadBodyChunk::Read(Self::read_chunk_2e00201c)),
+                (0x2E00201E, ReadBodyChunk::Read(Self::read_chunk_2e00201e)),
+                (0x2E00201F, ReadBodyChunk::Read(Self::read_chunk_2e00201f)),
+                (0x2E002020, ReadBodyChunk::Read(Self::read_chunk_2e002020)),
+                (0x2E002021, ReadBodyChunk::Read(Self::read_chunk_2e002021)),
+                (0x2E002023, ReadBodyChunk::Read(Self::read_chunk_2e002023)),
+                (0x2E002024, ReadBodyChunk::Skip),
+                (0x2E002025, ReadBodyChunk::Skip),
+                (0x2E002026, ReadBodyChunk::Skip),
+                (0x2E002027, ReadBodyChunk::Skip),
+            ],
+        )
+    }
 }
 
-impl ItemModel {
-    fn read_chunk_2e001003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+impl<T> ItemModel<T> {
+    fn read_chunk_2e001003<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
@@ -329,7 +404,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e001004<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001004<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -340,7 +415,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e001006<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001006<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -349,7 +424,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e001009<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001009<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
@@ -361,7 +436,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e00100b<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00100b<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
@@ -373,7 +448,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e00100c<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00100c<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -382,7 +457,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e00100d<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00100d<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -391,7 +466,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e00100e<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00100e<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -401,7 +476,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e001010<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001010<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -413,7 +488,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e001011<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001011<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -426,7 +501,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e002000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002000<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -435,7 +510,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e002001<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002001<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -444,7 +519,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e002008<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002008<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -453,7 +528,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e002009<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002009<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -463,7 +538,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e00200c<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00200c<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -472,7 +547,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e002012<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002012<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -487,7 +562,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e002015<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002015<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -495,8 +570,10 @@ impl ItemModel {
 
         Ok(())
     }
+}
 
-    fn read_chunk_2e002019<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+impl ItemModel<Block> {
+    fn read_chunk_2e002019<R, I, N>(n: &mut Block, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -508,18 +585,305 @@ impl ItemModel {
         r.u32()?;
         r.u32()?;
         r.u32()?;
-        if let Some(item_model) = r.any_optional_node_owned(|r, class_id| {
-            let item_model = match class_id {
-                0x2E025000 => ItemModel::Block(Block::read(r)?),
-                0x2E026000 => ItemModel::Item(Item::read(r)?),
+        r.any_optional_node_owned(|r, class_id| {
+            match class_id {
+                0x2E025000 => *n = Block::read(r)?,
+                0x2E026000 => {
+                    Item::read(r)?;
+                }
                 _ => panic!(),
-            };
+            }
 
-            Ok(item_model)
-        })? {
-            *self = item_model;
+            Ok(())
+        })?;
+        r.optional_node_owned(0x2E027000, |r| {
+            r.chunk_id(0x2E027000)?;
+            r.u32()?;
+            r.node_owned(0x09159000, |r| {
+                r.u32()?;
+                let model = r.node_owned(0x090BB000, |r| {
+                    r.chunk_id(0x090BB000)?;
+                    let version = r.u32()?;
+                    r.u32()?;
+                    r.list(|r| {
+                        r.u32()?;
+                        r.u32()?;
+                        r.u32()?;
+                        r.u32()?;
+
+                        Ok(())
+                    })?;
+                    r.u32()?;
+                    r.list(|r| {
+                        r.node(0x0901E000, |r| {
+                            r.chunk_id(0x09006001)?;
+                            r.u32()?;
+
+                            r.chunk_id(0x09006005)?;
+                            r.u32()?;
+
+                            r.chunk_id(0x09006009)?;
+                            r.u32()?;
+
+                            r.chunk_id(0x0900600B)?;
+                            r.u32()?;
+
+                            r.chunk_id(0x0900600F)?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.node(0x09056000, |r| {
+                                r.chunk_id(0x09056000)?;
+                                r.u32()?;
+                                let num_vertices = r.u32()?;
+                                r.u32()?;
+                                r.u32()?;
+                                let attributes = r.list(|r| {
+                                    r.u8()?; // byte offset * 4
+                                    r.u8()?;
+                                    r.u8()?;
+                                    r.u8()?;
+                                    r.u8()?;
+                                    r.u8()?;
+                                    let _byte_offset = r.u8()?;
+                                    r.u8()?;
+                                    let kind = r.u8()?;
+                                    r.u8()?;
+                                    r.u8()?;
+                                    r.u8()?;
+
+                                    Ok(kind)
+                                })?;
+                                for kind in attributes {
+                                    match kind {
+                                        1 => {
+                                            r.repeat(num_vertices as usize, |r| {
+                                                r.f32()?;
+                                                r.f32()?;
+
+                                                Ok(())
+                                            })?;
+                                        }
+                                        5 => {
+                                            r.repeat(num_vertices as usize, |r| {
+                                                r.f32()?;
+                                                r.f32()?;
+                                                r.f32()?;
+
+                                                Ok(())
+                                            })?;
+                                        }
+                                        10 => {
+                                            r.repeat(num_vertices as usize, |r| r.u32())?;
+                                        }
+                                        11 => {
+                                            r.repeat(num_vertices as usize, |r| {
+                                                r.f32()?;
+                                                r.f32()?;
+
+                                                Ok(())
+                                            })?;
+                                        }
+                                        18 => {
+                                            r.repeat(num_vertices as usize, |r| r.f32())?;
+                                        }
+                                        20 => {
+                                            r.repeat(num_vertices as usize, |r| r.f32())?;
+                                        }
+                                        _ => panic!(),
+                                    }
+                                }
+
+                                r.node_end()?;
+
+                                Ok(())
+                            })?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+                            r.u32()?;
+
+                            r.chunk_id(0x09006010)?;
+                            r.u32()?;
+                            r.u32()?;
+
+                            r.chunk_id(0x0902C002)?;
+                            r.u32()?;
+
+                            r.chunk_id(0x0902C004)?;
+                            r.u32()?;
+                            r.u32()?;
+
+                            r.chunk_id(0x0906A001)?;
+                            r.u32()?;
+                            {
+                                r.chunk_id(0x09057001)?;
+                                r.u32()?;
+                                let mut current_index = 0;
+                                let _indices = r.list(|r| {
+                                    let offset = r.i16()?;
+
+                                    if offset.is_positive() {
+                                        current_index += offset as u16;
+                                    } else {
+                                        current_index -= (-offset) as u16;
+                                    }
+
+                                    Ok(current_index)
+                                })?;
+
+                                r.node_end()?;
+                            }
+
+                            r.node_end()?;
+
+                            Ok(())
+                        })?;
+
+                        Ok(())
+                    })?;
+                    r.u32()?;
+                    let num_materials = r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.string()?; // "Stadium\Media\Material\"
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.string()?; // "*.Item.xml"
+                    if version >= 30 {
+                        r.u32()?;
+                    }
+                    let materials = r.repeat(num_materials as usize, |r| {
+                        r.u32()?;
+                        r.node_owned(0x090FD000, Material::read)
+                    })?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+                    r.u32()?;
+
+                    r.skip_chunk(0x090BB002)?;
+
+                    r.node_end()?;
+
+                    Ok(Model { materials })
+                })?;
+                r.u8()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+                r.u32()?;
+
+                r.node_end()?;
+
+                Ok(model)
+            })?;
+            r.u32()?;
+
+            Ok(())
+        })?;
+        if version >= 15 {
+            r.u32()?;
         }
-        if let Some(item_model) = r.optional_node_owned(0x2E027000, |r| {
+
+        Ok(())
+    }
+}
+
+impl ItemModel<Item> {
+    fn read_chunk_2e002019<R, I, N>(n: &mut Item, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    where
+        R: Read + Seek,
+        I: BorrowMut<reader::IdState>,
+        N: BorrowMut<reader::NodeState>,
+    {
+        let version = r.u32()?;
+        r.u32()?;
+        r.u32()?;
+        r.u32()?;
+        r.u32()?;
+        r.u32()?;
+        r.any_optional_node_owned(|r, class_id| {
+            match class_id {
+                0x2E025000 => {
+                    Block::read(r)?;
+                }
+                0x2E026000 => *n = Item::read(r)?,
+                _ => panic!(),
+            }
+
+            Ok(())
+        })?;
+        r.optional_node_owned(0x2E027000, |r| {
             r.chunk_id(0x2E027000)?;
             r.u32()?;
             let model = r.node_owned(0x09159000, |r| {
@@ -772,18 +1136,20 @@ impl ItemModel {
             })?;
             r.u32()?;
 
-            Ok(ItemModel::Item(Item { model }))
-        })? {
-            *self = item_model;
-        }
+            *n = Item { model };
+
+            Ok(())
+        })?;
         if version >= 15 {
             r.u32()?;
         }
 
         Ok(())
     }
+}
 
-    fn read_chunk_2e00201a<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+impl<T> ItemModel<T> {
+    fn read_chunk_2e00201a<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -792,7 +1158,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e00201c<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00201c<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read + Seek,
         N: BorrowMut<reader::NodeState>,
@@ -810,7 +1176,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e00201e<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00201e<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -825,7 +1191,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e00201f<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00201f<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -840,7 +1206,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e002020<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002020<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -851,7 +1217,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e002021<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002021<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -861,7 +1227,7 @@ impl ItemModel {
         Ok(())
     }
 
-    fn read_chunk_2e002023<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002023<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
     where
         R: Read,
     {
@@ -870,68 +1236,6 @@ impl ItemModel {
         r.u32()?;
 
         Ok(())
-    }
-}
-
-impl Default for ItemModel {
-    fn default() -> Self {
-        Self::Block(Block::default())
-    }
-}
-
-impl Class for ItemModel {
-    const CLASS_ID: u32 = 0x2E002000;
-}
-
-impl<R, I, N> ReadHeader<R, I, N> for ItemModel
-where
-    R: Read,
-    I: BorrowMut<reader::IdState>,
-{
-    fn header_chunks<'a>() -> &'a [(u32, ReadChunkFn<Self, R, I, N>)] {
-        &[
-            (0x2e001003, Self::read_chunk_2e001003),
-            (0x2e001004, Self::read_chunk_2e001004),
-            (0x2e001006, Self::read_chunk_2e001006),
-            (0x2e002000, Self::read_chunk_2e002000),
-            (0x2e002001, Self::read_chunk_2e002001),
-        ]
-    }
-}
-
-impl<R, I, N> ReadBody<R, I, N> for ItemModel
-where
-    R: Read + Seek,
-    I: BorrowMut<reader::IdState>,
-    N: BorrowMut<reader::NodeState>,
-{
-    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
-        &[
-            (0x2E001009, ReadChunk::Read(Self::read_chunk_2e001009)),
-            (0x2E00100B, ReadChunk::Read(Self::read_chunk_2e00100b)),
-            (0x2E00100C, ReadChunk::Read(Self::read_chunk_2e00100c)),
-            (0x2E00100D, ReadChunk::Read(Self::read_chunk_2e00100d)),
-            (0x2E00100E, ReadChunk::Read(Self::read_chunk_2e00100e)),
-            (0x2E001010, ReadChunk::Read(Self::read_chunk_2e001010)),
-            (0x2E001011, ReadChunk::Read(Self::read_chunk_2e001011)),
-            (0x2E002008, ReadChunk::Read(Self::read_chunk_2e002008)),
-            (0x2E002009, ReadChunk::Read(Self::read_chunk_2e002009)),
-            (0x2E00200C, ReadChunk::Read(Self::read_chunk_2e00200c)),
-            (0x2E002012, ReadChunk::Read(Self::read_chunk_2e002012)),
-            (0x2E002015, ReadChunk::Read(Self::read_chunk_2e002015)),
-            (0x2E002019, ReadChunk::Read(Self::read_chunk_2e002019)),
-            (0x2E00201A, ReadChunk::Read(Self::read_chunk_2e00201a)),
-            (0x2E00201C, ReadChunk::Read(Self::read_chunk_2e00201c)),
-            (0x2E00201E, ReadChunk::Read(Self::read_chunk_2e00201e)),
-            (0x2E00201F, ReadChunk::Read(Self::read_chunk_2e00201f)),
-            (0x2E002020, ReadChunk::Read(Self::read_chunk_2e002020)),
-            (0x2E002021, ReadChunk::Read(Self::read_chunk_2e002021)),
-            (0x2E002023, ReadChunk::Read(Self::read_chunk_2e002023)),
-            (0x2E002024, ReadChunk::Skip),
-            (0x2E002025, ReadChunk::Skip),
-            (0x2E002026, ReadChunk::Skip),
-            (0x2E002027, ReadChunk::Skip),
-        ]
     }
 }
 

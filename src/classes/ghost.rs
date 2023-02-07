@@ -1,5 +1,5 @@
 use crate::error::ReadResult;
-use crate::gbx::{self, ReadBody, ReadChunk};
+use crate::gbx::{self, ReadBodyChunk};
 use crate::reader::{self, Reader};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
@@ -48,7 +48,46 @@ impl Ghost {
         N: BorrowMut<reader::NodeState>,
     {
         let mut ghost = Self::default();
-        gbx::read_body(&mut ghost, r)?;
+
+        gbx::read_body(
+            &mut ghost,
+            r,
+            vec![
+                (0x0303F006, ReadBodyChunk::Read(Self::read_chunk_0303f006)),
+                (0x0303F007, ReadBodyChunk::Skip),
+                (
+                    0x03092000,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03092000),
+                ),
+                (0x03092005, ReadBodyChunk::Skip),
+                (0x03092008, ReadBodyChunk::Skip),
+                (0x0309200A, ReadBodyChunk::Skip),
+                (0x0309200B, ReadBodyChunk::Skip),
+                (0x0309200C, ReadBodyChunk::Read(Self::read_chunk_0309200c)),
+                (0x0309200E, ReadBodyChunk::Read(Self::read_chunk_0309200e)),
+                (0x0309200F, ReadBodyChunk::Read(Self::read_chunk_0309200f)),
+                (0x03092010, ReadBodyChunk::Read(Self::read_chunk_03092010)),
+                (0x03092013, ReadBodyChunk::Skip),
+                (0x03092014, ReadBodyChunk::Skip),
+                (0x0309201A, ReadBodyChunk::Skip),
+                (0x0309201B, ReadBodyChunk::Skip),
+                (0x0309201C, ReadBodyChunk::Read(Self::read_chunk_0309201c)),
+                (0x0309201D, ReadBodyChunk::Skip),
+                (0x03092022, ReadBodyChunk::Skip),
+                (0x03092023, ReadBodyChunk::Skip),
+                (0x03092024, ReadBodyChunk::Skip),
+                (0x03092025, ReadBodyChunk::Skip),
+                (0x03092026, ReadBodyChunk::Skip),
+                (0x03092027, ReadBodyChunk::Skip),
+                (0x03092028, ReadBodyChunk::Skip),
+                (0x03092029, ReadBodyChunk::Skip),
+                (0x0309202A, ReadBodyChunk::Skip),
+                (0x0309202B, ReadBodyChunk::Skip),
+                (0x0309202C, ReadBodyChunk::Skip),
+                (0x0309202D, ReadBodyChunk::Skip),
+            ],
+        )?;
+
         Ok(ghost)
     }
 
@@ -158,49 +197,5 @@ impl Ghost {
         r.u32()?;
 
         Ok(())
-    }
-}
-
-impl<R, I, N> ReadBody<R, I, N> for Ghost
-where
-    R: Read + Seek,
-    I: BorrowMut<reader::IdState>,
-    N: BorrowMut<reader::NodeState>,
-{
-    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
-        &[
-            (0x0303F006, ReadChunk::Read(Self::read_chunk_0303f006)),
-            (0x0303F007, ReadChunk::Skip),
-            (
-                0x03092000,
-                ReadChunk::ReadSkippable(Self::read_chunk_03092000),
-            ),
-            (0x03092005, ReadChunk::Skip),
-            (0x03092008, ReadChunk::Skip),
-            (0x0309200A, ReadChunk::Skip),
-            (0x0309200B, ReadChunk::Skip),
-            (0x0309200C, ReadChunk::Read(Self::read_chunk_0309200c)),
-            (0x0309200E, ReadChunk::Read(Self::read_chunk_0309200e)),
-            (0x0309200F, ReadChunk::Read(Self::read_chunk_0309200f)),
-            (0x03092010, ReadChunk::Read(Self::read_chunk_03092010)),
-            (0x03092013, ReadChunk::Skip),
-            (0x03092014, ReadChunk::Skip),
-            (0x0309201A, ReadChunk::Skip),
-            (0x0309201B, ReadChunk::Skip),
-            (0x0309201C, ReadChunk::Read(Self::read_chunk_0309201c)),
-            (0x0309201D, ReadChunk::Skip),
-            (0x03092022, ReadChunk::Skip),
-            (0x03092023, ReadChunk::Skip),
-            (0x03092024, ReadChunk::Skip),
-            (0x03092025, ReadChunk::Skip),
-            (0x03092026, ReadChunk::Skip),
-            (0x03092027, ReadChunk::Skip),
-            (0x03092028, ReadChunk::Skip),
-            (0x03092029, ReadChunk::Skip),
-            (0x0309202A, ReadChunk::Skip),
-            (0x0309202B, ReadChunk::Skip),
-            (0x0309202C, ReadChunk::Skip),
-            (0x0309202D, ReadChunk::Skip),
-        ]
     }
 }

@@ -1,24 +1,21 @@
 /// Media tracker types.
 pub mod media;
 
-use crate::error::{ReadError, ReadResult, WriteError, WriteResult};
-use crate::gbx::{
-    self, Class, ReadBody, ReadChunk, ReadChunkFn, ReadHeader, WriteBody, WriteHeader,
-};
+use crate::error::{ReadError, ReadResult, WriteResult};
+use crate::gbx::ReadBodyChunk;
 use crate::ghost::Ghost;
 use crate::reader::{self, Reader};
 use crate::types::{ExternalFileRef, FileRef, Id, Vec3};
 use crate::writer::{self, Writer};
+use crate::{gbx, ReaderBuilder, WriterBuilder};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
 use std::borrow::BorrowMut;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufReader, BufWriter, Cursor, Read, Seek, Write};
+use std::io::{Cursor, Read, Seek, Write};
 use std::ops::Sub;
-use std::path::Path;
 
 /// Day time of the default night mood.
 pub const NIGHT_MOOD_TIME: u16 = 6554;
@@ -171,7 +168,16 @@ impl Skin {
         N: BorrowMut<reader::NodeState>,
     {
         let mut skin = Self::default();
-        gbx::read_body(&mut skin, r)?;
+
+        gbx::read_body(
+            &mut skin,
+            r,
+            vec![
+                (0x03059002, ReadBodyChunk::Read(Self::read_chunk_03059002)),
+                (0x03059003, ReadBodyChunk::Read(Self::read_chunk_03059003)),
+            ],
+        )?;
+
         Ok(skin)
     }
 
@@ -195,18 +201,6 @@ impl Skin {
         self.effect = r.optional_file_ref()?;
 
         Ok(())
-    }
-}
-
-impl<R, I, N> ReadBody<R, I, N> for Skin
-where
-    R: Read,
-{
-    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
-        &[
-            (0x03059002, ReadChunk::Read(Self::read_chunk_03059002)),
-            (0x03059003, ReadChunk::Read(Self::read_chunk_03059003)),
-        ]
     }
 }
 
@@ -261,7 +255,16 @@ impl WaypointProperty {
         R: Read + Seek,
     {
         let mut waypoint_property = Self::default();
-        gbx::read_body(&mut waypoint_property, r)?;
+
+        gbx::read_body(
+            &mut waypoint_property,
+            r,
+            vec![
+                (0x2E009000, ReadBodyChunk::Read(Self::read_chunk_2e009000)),
+                (0x2E009001, ReadBodyChunk::Skip),
+            ],
+        )?;
+
         Ok(waypoint_property)
     }
 
@@ -290,18 +293,6 @@ impl WaypointProperty {
         };
 
         Ok(())
-    }
-}
-
-impl<R, I, N> ReadBody<R, I, N> for WaypointProperty
-where
-    R: Read,
-{
-    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
-        &[
-            (0x2E009000, ReadChunk::Read(Self::read_chunk_2e009000)),
-            (0x2E009001, ReadChunk::Skip),
-        ]
     }
 }
 
@@ -443,7 +434,17 @@ impl Item {
         R: Read + Seek,
     {
         let mut item = Self::default();
-        gbx::read_body(&mut item, r)?;
+
+        gbx::read_body(
+            &mut item,
+            r,
+            vec![
+                (0x03101002, ReadBodyChunk::Read(Self::read_chunk_03101002)),
+                (0x03101004, ReadBodyChunk::Skip),
+                (0x03101005, ReadBodyChunk::Skip),
+            ],
+        )?;
+
         Ok(item)
     }
 
@@ -483,20 +484,6 @@ impl Item {
         r.f32()?; // -1.0
 
         Ok(())
-    }
-}
-
-impl<R, I, N> ReadBody<R, I, N> for Item
-where
-    R: Read + Seek,
-    I: BorrowMut<reader::IdState>,
-{
-    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
-        &[
-            (0x03101002, ReadChunk::Read(Self::read_chunk_03101002)),
-            (0x03101004, ReadChunk::Skip),
-            (0x03101005, ReadChunk::Skip),
-        ]
     }
 }
 
@@ -603,67 +590,119 @@ impl Map {
         self.uid.clone()
     }
 
-    /// Read a map from the given `reader`.
-    ///
-    /// For performance reasons, it is recommended that the `reader` is buffered.
-    pub fn read_from<R>(reader: R) -> ReadResult<Self>
-    where
-        R: Read,
-    {
-        gbx::read(reader)
+    pub fn reader() -> ReaderBuilder<Self> {
+        ReaderBuilder::new(
+            Self::default,
+            0x03043000,
+            vec![
+                (0x03043002, |n, r| Self::read_chunk_03043002(n, r)),
+                (0x03043003, |n, r| Self::read_chunk_03043003(n, r)),
+                (0x03043004, |n, r| Self::read_chunk_03043004(n, r)),
+                (0x03043005, |n, r| Self::read_chunk_03043005(n, r)),
+                (0x03043007, |n, r| Self::read_chunk_03043007(n, r)),
+                (0x03043008, |n, r| Self::read_chunk_03043008(n, r)),
+            ],
+            vec![
+                (0x0304300D, ReadBodyChunk::Read(Self::read_chunk_0304300d)),
+                (0x03043011, ReadBodyChunk::Read(Self::read_chunk_03043011)),
+                (
+                    0x03043018,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043018),
+                ),
+                (
+                    0x03043019,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043019),
+                ),
+                (0x0304301F, ReadBodyChunk::Read(Self::read_chunk_0304301f)),
+                (0x03043022, ReadBodyChunk::Read(Self::read_chunk_03043022)),
+                (0x03043024, ReadBodyChunk::Read(Self::read_chunk_03043024)),
+                (0x03043025, ReadBodyChunk::Read(Self::read_chunk_03043025)),
+                (0x03043026, ReadBodyChunk::Read(Self::read_chunk_03043026)),
+                (0x03043028, ReadBodyChunk::Read(Self::read_chunk_03043028)),
+                (0x03043029, ReadBodyChunk::Skip),
+                (0x0304302A, ReadBodyChunk::Read(Self::read_chunk_0304302a)),
+                (0x03043034, ReadBodyChunk::Skip),
+                (0x03043036, ReadBodyChunk::Skip),
+                (0x03043038, ReadBodyChunk::Skip),
+                (0x0304303E, ReadBodyChunk::Skip),
+                (
+                    0x03043040,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043040),
+                ),
+                (
+                    0x03043042,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043042),
+                ),
+                (0x03043043, ReadBodyChunk::Skip),
+                (0x03043044, ReadBodyChunk::Skip),
+                (
+                    0x03043048,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043048),
+                ),
+                (0x03043049, ReadBodyChunk::Read(Self::read_chunk_03043049)),
+                (0x0304304B, ReadBodyChunk::Skip),
+                (0x0304304F, ReadBodyChunk::Skip),
+                (0x03043050, ReadBodyChunk::Skip),
+                (0x03043051, ReadBodyChunk::Skip),
+                (0x03043052, ReadBodyChunk::Skip),
+                (0x03043053, ReadBodyChunk::Skip),
+                (
+                    0x03043054,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043054),
+                ),
+                (0x03043055, ReadBodyChunk::Skip),
+                (
+                    0x03043056,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043056),
+                ),
+                (0x03043057, ReadBodyChunk::Skip),
+                (0x03043058, ReadBodyChunk::Skip),
+                (0x03043059, ReadBodyChunk::Skip),
+                (0x0304305A, ReadBodyChunk::Skip),
+                (0x0304305B, ReadBodyChunk::Skip),
+                (0x0304305C, ReadBodyChunk::Skip),
+                (0x0304305D, ReadBodyChunk::Skip),
+                (0x0304305E, ReadBodyChunk::Skip),
+                (
+                    0x0304305F,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_0304305f),
+                ),
+                (0x03043060, ReadBodyChunk::Skip),
+                (0x03043061, ReadBodyChunk::Skip),
+                (
+                    0x03043062,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043062),
+                ),
+                (
+                    0x03043063,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043063),
+                ),
+                (0x03043064, ReadBodyChunk::Skip),
+                (0x03043065, ReadBodyChunk::Skip),
+                (0x03043067, ReadBodyChunk::Skip),
+                (
+                    0x03043068,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043068),
+                ),
+                (0x03043069, ReadBodyChunk::Skip),
+            ],
+        )
     }
 
-    /// Read a map from a file at the given `path`.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # fn main() -> gbx::error::ReadResult<()> {
-    /// let map = gbx::Map::read_from_file("MyMap.Map.Gbx")?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn read_from_file<P>(path: P) -> ReadResult<Self>
-    where
-        P: AsRef<Path>,
-    {
-        let file = File::open(path).map_err(|err| ReadError(format!("{err}")))?;
-        let reader = BufReader::new(file);
-        Self::read_from(reader)
-    }
-
-    /// Write the map to the given `writer`.
-    ///
-    /// For performance reasons, it is recommended that the `writer` is buffered.
-    pub fn write_to<W>(&self, writer: W) -> WriteResult
-    where
-        W: Write,
-    {
-        gbx::write(self, writer)?;
-
-        Ok(())
-    }
-
-    /// Write the map to a file at the given `path`.
-    ///
-    /// This function will create the file if it does not exist, and will truncate it if it does.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # fn main() -> gbx::error::WriteResult {
-    /// let map = gbx::Map::new();
-    /// map.write_to_file("MyMap.Map.Gbx")?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn write_to_file<P>(&self, path: P) -> WriteResult
-    where
-        P: AsRef<Path>,
-    {
-        let file = File::create(path).map_err(|err| WriteError(format!("{err}")))?;
-        let writer = BufWriter::new(file);
-        self.write_to(writer)
+    pub fn writer(&self) -> WriterBuilder<Self> {
+        WriterBuilder::new(
+            self,
+            0x03043000,
+            vec![
+                (0x03043002, |n, w| Self::write_chunk_03043002(n, w)),
+                (0x03043003, |n, w| Self::write_chunk_03043003(n, w)),
+                (0x03043004, |n, w| Self::write_chunk_03043004(n, w)),
+                (0x03043005, |n, w| Self::write_chunk_03043005(n, w)),
+                (0x03043007, |n, w| Self::write_chunk_03043007(n, w)),
+                (0x03043008, |n, w| Self::write_chunk_03043008(n, w)),
+            ],
+            |n, w| Self::write_body(n, w),
+        )
     }
 }
 
@@ -1645,192 +1684,13 @@ impl Map {
 
         Ok(())
     }
-}
 
-impl Default for Map {
-    fn default() -> Self {
-        let mut baked_blocks = Vec::with_capacity(2304);
-        let grass_model_id = Id::new(String::from("Grass"));
-
-        for x in 0..48 {
-            for z in 0..48 {
-                baked_blocks.push(BlockType::Normal(Block {
-                    model_id: Id::clone(&grass_model_id),
-                    coord: Vec3 { x, y: 9, z },
-                    is_ground: true,
-                    ..Default::default()
-                }))
-            }
-        }
-
-        Self {
-            name: String::from("Unnamed"),
-            uid: None,
-            author_name: String::default(),
-            author_uid: Id::default(),
-            author_zone: String::default(),
-            validation: None,
-            cost: 312,
-            num_laps: None,
-            num_cps: 0,
-            no_stadium: false,
-            thumbnail: None,
-            texture_mod: None,
-            day_time: DAY_MOOD_TIME,
-            size: Vec3 { x: 48, y: 8, z: 48 },
-            blocks: vec![],
-            music: None,
-            items: vec![],
-            baked_blocks,
-            intro_media: None,
-            podium_media: None,
-            in_game_media: None,
-            end_race_media: None,
-            ambiance_media: None,
-            embedded_files: None,
-        }
-    }
-}
-
-impl Class for Map {
-    const CLASS_ID: u32 = 0x03043000;
-}
-
-impl<R, I, N> ReadHeader<R, I, N> for Map
-where
-    R: Read,
-    I: BorrowMut<reader::IdState>,
-{
-    fn header_chunks<'a>() -> &'a [(u32, ReadChunkFn<Self, R, I, N>)] {
-        &[
-            (0x03043002, Self::read_chunk_03043002),
-            (0x03043003, Self::read_chunk_03043003),
-            (0x03043004, Self::read_chunk_03043004),
-            (0x03043005, Self::read_chunk_03043005),
-            (0x03043007, Self::read_chunk_03043007),
-            (0x03043008, Self::read_chunk_03043008),
-        ]
-    }
-}
-
-impl<R, I, N> ReadBody<R, I, N> for Map
-where
-    R: Read + Seek,
-    I: BorrowMut<reader::IdState>,
-    N: BorrowMut<reader::NodeState>,
-{
-    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
-        &[
-            (0x0304300D, ReadChunk::Read(Self::read_chunk_0304300d)),
-            (0x03043011, ReadChunk::Read(Self::read_chunk_03043011)),
-            (
-                0x03043018,
-                ReadChunk::ReadSkippable(Self::read_chunk_03043018),
-            ),
-            (
-                0x03043019,
-                ReadChunk::ReadSkippable(Self::read_chunk_03043019),
-            ),
-            (0x0304301F, ReadChunk::Read(Self::read_chunk_0304301f)),
-            (0x03043022, ReadChunk::Read(Self::read_chunk_03043022)),
-            (0x03043024, ReadChunk::Read(Self::read_chunk_03043024)),
-            (0x03043025, ReadChunk::Read(Self::read_chunk_03043025)),
-            (0x03043026, ReadChunk::Read(Self::read_chunk_03043026)),
-            (0x03043028, ReadChunk::Read(Self::read_chunk_03043028)),
-            (0x03043029, ReadChunk::Skip),
-            (0x0304302A, ReadChunk::Read(Self::read_chunk_0304302a)),
-            (0x03043034, ReadChunk::Skip),
-            (0x03043036, ReadChunk::Skip),
-            (0x03043038, ReadChunk::Skip),
-            (0x0304303E, ReadChunk::Skip),
-            (
-                0x03043040,
-                ReadChunk::ReadSkippable(Self::read_chunk_03043040),
-            ),
-            (
-                0x03043042,
-                ReadChunk::ReadSkippable(Self::read_chunk_03043042),
-            ),
-            (0x03043043, ReadChunk::Skip),
-            (0x03043044, ReadChunk::Skip),
-            (
-                0x03043048,
-                ReadChunk::ReadSkippable(Self::read_chunk_03043048),
-            ),
-            (0x03043049, ReadChunk::Read(Self::read_chunk_03043049)),
-            (0x0304304B, ReadChunk::Skip),
-            (0x0304304F, ReadChunk::Skip),
-            (0x03043050, ReadChunk::Skip),
-            (0x03043051, ReadChunk::Skip),
-            (0x03043052, ReadChunk::Skip),
-            (0x03043053, ReadChunk::Skip),
-            (
-                0x03043054,
-                ReadChunk::ReadSkippable(Self::read_chunk_03043054),
-            ),
-            (0x03043055, ReadChunk::Skip),
-            (
-                0x03043056,
-                ReadChunk::ReadSkippable(Self::read_chunk_03043056),
-            ),
-            (0x03043057, ReadChunk::Skip),
-            (0x03043058, ReadChunk::Skip),
-            (0x03043059, ReadChunk::Skip),
-            (0x0304305A, ReadChunk::Skip),
-            (0x0304305B, ReadChunk::Skip),
-            (0x0304305C, ReadChunk::Skip),
-            (0x0304305D, ReadChunk::Skip),
-            (0x0304305E, ReadChunk::Skip),
-            (
-                0x0304305F,
-                ReadChunk::ReadSkippable(Self::read_chunk_0304305f),
-            ),
-            (0x03043060, ReadChunk::Skip),
-            (0x03043061, ReadChunk::Skip),
-            (
-                0x03043062,
-                ReadChunk::ReadSkippable(Self::read_chunk_03043062),
-            ),
-            (
-                0x03043063,
-                ReadChunk::ReadSkippable(Self::read_chunk_03043063),
-            ),
-            (0x03043064, ReadChunk::Skip),
-            (0x03043065, ReadChunk::Skip),
-            (0x03043067, ReadChunk::Skip),
-            (
-                0x03043068,
-                ReadChunk::ReadSkippable(Self::read_chunk_03043068),
-            ),
-            (0x03043069, ReadChunk::Skip),
-        ]
-    }
-}
-
-impl<W, I, N> WriteHeader<W, I, N> for Map
-where
-    W: Write,
-    I: BorrowMut<writer::IdState>,
-{
-    fn write_header_chunks<'a>() -> &'a [(u32, fn(&Self, Writer<W, I, N>) -> WriteResult)] {
-        &[
-            (0x03043002, Self::write_chunk_03043002),
-            (0x03043003, Self::write_chunk_03043003),
-            (0x03043004, Self::write_chunk_03043004),
-            (0x03043005, Self::write_chunk_03043005),
-            (0x03043007, Self::write_chunk_03043007),
-            (0x03043008, Self::write_chunk_03043008),
-        ]
-    }
-}
-
-impl<W, I, N> WriteBody<W, I, N> for Map
-where
-    W: Write,
-    I: BorrowMut<writer::IdState>,
-    N: BorrowMut<writer::NodeState>,
-{
-    fn write_body(&self, w: &mut Writer<W, I, N>) -> WriteResult {
+    fn write_body<W, I, N>(&self, w: &mut Writer<W, I, N>) -> WriteResult
+    where
+        W: Write,
+        I: BorrowMut<writer::IdState>,
+        N: BorrowMut<writer::NodeState>,
+    {
         w.u32(0x0304300D)?;
         w.id(None)?;
         w.u32(0xFFFFFFFF)?;
@@ -2465,5 +2325,50 @@ where
         })?;
 
         Ok(())
+    }
+}
+
+impl Default for Map {
+    fn default() -> Self {
+        let mut baked_blocks = Vec::with_capacity(2304);
+        let grass_model_id = Id::new(String::from("Grass"));
+
+        for x in 0..48 {
+            for z in 0..48 {
+                baked_blocks.push(BlockType::Normal(Block {
+                    model_id: Id::clone(&grass_model_id),
+                    coord: Vec3 { x, y: 9, z },
+                    is_ground: true,
+                    ..Default::default()
+                }))
+            }
+        }
+
+        Self {
+            name: String::from("Unnamed"),
+            uid: None,
+            author_name: String::default(),
+            author_uid: Id::default(),
+            author_zone: String::default(),
+            validation: None,
+            cost: 312,
+            num_laps: None,
+            num_cps: 0,
+            no_stadium: false,
+            thumbnail: None,
+            texture_mod: None,
+            day_time: DAY_MOOD_TIME,
+            size: Vec3 { x: 48, y: 8, z: 48 },
+            blocks: vec![],
+            music: None,
+            items: vec![],
+            baked_blocks,
+            intro_media: None,
+            podium_media: None,
+            in_game_media: None,
+            end_race_media: None,
+            ambiance_media: None,
+            embedded_files: None,
+        }
     }
 }

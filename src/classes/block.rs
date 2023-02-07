@@ -1,12 +1,10 @@
-use crate::error::{ReadError, ReadResult};
-use crate::gbx::{self, ReadBody, ReadChunk};
+use crate::error::ReadResult;
+use crate::gbx::{self, ReadBodyChunk};
 use crate::model::{Crystal, ItemModel, Model};
 use crate::reader::{self, Reader};
-use crate::Id;
+use crate::{Id, ReaderBuilder};
 use std::borrow::BorrowMut;
-use std::fs::File;
-use std::io::{BufReader, Read, Seek};
-use std::path::Path;
+use std::io::{Read, Seek};
 
 /// Type corresponding to the file extension `Block.Gbx`.
 #[derive(Clone, Default)]
@@ -18,36 +16,8 @@ pub struct Block {
 }
 
 impl Block {
-    /// Read a block from the given `reader`.
-    ///
-    /// For performance reasons, it is recommended that the `reader` is buffered.
-    pub fn read_from<R>(reader: R) -> ReadResult<Self>
-    where
-        R: Read,
-    {
-        match gbx::read(reader)? {
-            ItemModel::Block(block) => Ok(block),
-            ItemModel::Item(_) => Err(ReadError(String::from("expected block, got item"))),
-        }
-    }
-
-    /// Read a block from a file at the given `path`.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # fn main() -> gbx::error::ReadResult<()> {
-    /// let block = gbx::Block::read_from_file("MyBlock.Block.Gbx")?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn read_from_file<P>(path: P) -> ReadResult<Self>
-    where
-        P: AsRef<Path>,
-    {
-        let file = File::open(path).unwrap();
-        let reader = BufReader::new(file);
-        Self::read_from(reader)
+    pub fn reader() -> ReaderBuilder<Self> {
+        ItemModel::<Self>::reader()
     }
 
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
@@ -57,7 +27,18 @@ impl Block {
         N: BorrowMut<reader::NodeState>,
     {
         let mut block = Self::default();
-        gbx::read_body(&mut block, r)?;
+
+        gbx::read_body(
+            &mut block,
+            r,
+            vec![
+                (0x2E025000, ReadBodyChunk::Read(Self::read_chunk_2e025000)),
+                (0x2E025001, ReadBodyChunk::Skip),
+                (0x2E025002, ReadBodyChunk::Skip),
+                (0x2E025003, ReadBodyChunk::Skip),
+            ],
+        )?;
+
         Ok(block)
     }
 
@@ -78,21 +59,5 @@ impl Block {
         })?;
 
         Ok(())
-    }
-}
-
-impl<R, I, N> ReadBody<R, I, N> for Block
-where
-    R: Read + Seek,
-    I: BorrowMut<reader::IdState>,
-    N: BorrowMut<reader::NodeState>,
-{
-    fn body_chunks<'a>() -> &'a [(u32, ReadChunk<Self, R, I, N>)] {
-        &[
-            (0x2E025000, ReadChunk::Read(Self::read_chunk_2e025000)),
-            (0x2E025001, ReadChunk::Skip),
-            (0x2E025002, ReadChunk::Skip),
-            (0x2E025003, ReadChunk::Skip),
-        ]
     }
 }
