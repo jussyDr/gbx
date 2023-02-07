@@ -1,5 +1,3 @@
-#![allow(clippy::type_complexity)]
-
 mod writer;
 
 pub(crate) use writer::{IdState, NodeState, Writer};
@@ -26,11 +24,13 @@ impl error::Error for Error {}
 /// Write result.
 pub type Result = result::Result<(), Error>;
 
+type HeaderChunks<T> = Vec<(u32, fn(&T, Writer<&mut Vec<u8>, &mut IdState>) -> Result)>;
+
 /// Writer builder.
 pub struct WriterBuilder<'a, T> {
     node: &'a T,
     class_id: u32,
-    header_chunks: Vec<(u32, fn(&T, Writer<&mut Vec<u8>, &mut IdState>) -> Result)>,
+    header_chunks: HeaderChunks<T>,
     body: fn(&T, &mut Writer<&mut Vec<u8>, IdState, &mut NodeState>) -> Result,
 }
 
@@ -38,7 +38,7 @@ impl<'a, T> WriterBuilder<'a, T> {
     pub(crate) fn new(
         node: &'a T,
         class_id: u32,
-        header_chunks: Vec<(u32, fn(&T, Writer<&mut Vec<u8>, &mut IdState>) -> Result)>,
+        header_chunks: HeaderChunks<T>,
         body: fn(&T, &mut Writer<&mut Vec<u8>, IdState, &mut NodeState>) -> Result,
     ) -> Self {
         Self {

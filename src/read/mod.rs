@@ -1,5 +1,3 @@
-#![allow(clippy::type_complexity)]
-
 mod reader;
 
 pub(crate) use reader::{IdState, NodeState, Reader};
@@ -32,29 +30,29 @@ pub(crate) enum ReadBodyChunk<T, R, I, N> {
     ReadSkippable(fn(&mut T, &mut Reader<R, I, N>) -> Result<()>),
 }
 
+type HeaderChunks<T> = Vec<(
+    u32,
+    fn(&mut T, &mut Reader<&[u8], &mut IdState>) -> Result<()>,
+)>;
+
+type BodyChunks<T> = Vec<(u32, ReadBodyChunk<T, Cursor<Vec<u8>>, IdState, NodeState>)>;
+
 /// Reader builder.
 pub struct ReaderBuilder<T> {
     read_user_data: bool,
     read_body: bool,
-
     default: fn() -> T,
     class_id: u32,
-    header_chunks: Vec<(
-        u32,
-        fn(&mut T, &mut Reader<&[u8], &mut IdState>) -> Result<()>,
-    )>,
-    body_chunks: Vec<(u32, ReadBodyChunk<T, Cursor<Vec<u8>>, IdState, NodeState>)>,
+    header_chunks: HeaderChunks<T>,
+    body_chunks: BodyChunks<T>,
 }
 
 impl<T> ReaderBuilder<T> {
     pub(crate) fn new(
         default: fn() -> T,
         class_id: u32,
-        header_chunks: Vec<(
-            u32,
-            fn(&mut T, &mut Reader<&[u8], &mut IdState>) -> Result<()>,
-        )>,
-        body_chunks: Vec<(u32, ReadBodyChunk<T, Cursor<Vec<u8>>, IdState, NodeState>)>,
+        header_chunks: HeaderChunks<T>,
+        body_chunks: BodyChunks<T>,
     ) -> Self {
         Self {
             read_user_data: true,
