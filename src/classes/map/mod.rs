@@ -796,7 +796,7 @@ impl Map {
         I: BorrowMut<read::IdState>,
     {
         r.u8()?;
-        self.uid = Some(r.id()?);
+        self.uid = r.optional_id()?;
         r.u32()?;
         self.author_uid = r.id()?;
         self.name = r.string()?;
@@ -1075,9 +1075,9 @@ impl Map {
         I: BorrowMut<read::IdState>,
         N: BorrowMut<read::NodeState>,
     {
-        r.id()?;
+        self.uid = r.optional_id()?;
         r.u32()?;
-        r.id()?;
+        self.author_uid = r.id()?;
         self.name = r.string()?;
         let deco_id = r.id()?;
         self.no_stadium = does_deco_have_no_stadium(&deco_id);
@@ -2352,14 +2352,18 @@ impl Default for Map {
             author_uid: Id::default(),
             author_zone: String::default(),
             validation: None,
-            cost: 312,
+            cost: 318,
             num_laps: None,
-            num_cps: 0,
+            num_cps: 1,
             no_stadium: false,
             thumbnail: None,
             texture_mod: None,
             day_time: DAY_MOOD_TIME,
-            size: Vec3 { x: 48, y: 8, z: 48 },
+            size: Vec3 {
+                x: 48,
+                y: 40,
+                z: 48,
+            },
             blocks: vec![],
             music: None,
             items: vec![],
@@ -2378,7 +2382,9 @@ impl Debug for Map {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Map")
             .field("name", &self.name)
+            .field("uid", &self.uid)
             .field("author_name", &self.author_name)
+            .field("author_uid", &self.author_uid)
             .field("author_zone", &self.author_zone)
             .field("validation", &self.validation)
             .field("cost", &self.cost)
