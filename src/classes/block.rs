@@ -14,6 +14,7 @@ pub struct Block {
 }
 
 impl Block {
+    /// Get a block reader.
     pub fn reader() -> ReaderBuilder<Self> {
         ItemModel::<Self>::reader()
     }

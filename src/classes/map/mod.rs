@@ -587,6 +587,7 @@ impl Map {
         self.uid.clone()
     }
 
+    /// Get a map reader.
     pub fn reader() -> ReaderBuilder<Self> {
         ReaderBuilder::new(
             Self::default,
@@ -686,6 +687,7 @@ impl Map {
         )
     }
 
+    /// Get a writer for this map.
     pub fn writer(&self) -> WriterBuilder<Self> {
         WriterBuilder::new(
             self,

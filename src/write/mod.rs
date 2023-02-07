@@ -26,6 +26,7 @@ impl error::Error for Error {}
 /// Write result.
 pub type Result = result::Result<(), Error>;
 
+/// Writer builder.
 pub struct WriterBuilder<'a, T> {
     node: &'a T,
     class_id: u32,
@@ -48,6 +49,9 @@ impl<'a, T> WriterBuilder<'a, T> {
         }
     }
 
+    /// Write the node of type `T` to the given `writer`.
+    ///
+    /// For performance reasons, it is recommended that the `writer` is buffered.
     pub fn write_to<W>(self, writer: W) -> Result
     where
         W: Write,
@@ -113,6 +117,9 @@ impl<'a, T> WriterBuilder<'a, T> {
         Ok(())
     }
 
+    /// Write the node of type `T` to a file at the given path.
+    ///
+    /// Will create a file if it does not exist, and will truncate it if it does.
     pub fn write_to_file<P>(self, path: P) -> Result
     where
         P: AsRef<Path>,

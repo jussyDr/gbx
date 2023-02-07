@@ -26,12 +26,13 @@ impl error::Error for Error {}
 /// Read result.
 pub type Result<T> = result::Result<T, Error>;
 
-pub enum ReadBodyChunk<T, R, I, N> {
+pub(crate) enum ReadBodyChunk<T, R, I, N> {
     Read(fn(&mut T, &mut Reader<R, I, N>) -> Result<()>),
     Skip,
     ReadSkippable(fn(&mut T, &mut Reader<R, I, N>) -> Result<()>),
 }
 
+/// Reader builder.
 pub struct ReaderBuilder<T> {
     read_user_data: bool,
     read_body: bool,
@@ -65,16 +66,21 @@ impl<T> ReaderBuilder<T> {
         }
     }
 
+    /// Set whether or not to read the user data.
     pub fn user_data(mut self, read_user_data: bool) -> Self {
         self.read_user_data = read_user_data;
         self
     }
 
+    /// Set whether or not to read the body.
     pub fn body(mut self, read_body: bool) -> Self {
         self.read_body = read_body;
         self
     }
 
+    /// Read a node of type `T` from the given `reader`.
+    ///
+    /// For performance reasons, it is recommended that the `reader` is buffered.
     pub fn read_from<R>(self, reader: R) -> Result<T>
     where
         R: Read,
@@ -177,6 +183,7 @@ impl<T> ReaderBuilder<T> {
         Ok(node)
     }
 
+    /// Read a node of type `T` from a file at the given path.
     pub fn read_from_file<P>(self, path: P) -> Result<T>
     where
         P: AsRef<Path>,
@@ -187,7 +194,7 @@ impl<T> ReaderBuilder<T> {
     }
 }
 
-pub fn read_body<T, R, I, N>(
+pub(crate) fn read_body<T, R, I, N>(
     node: &mut T,
     r: &mut Reader<R, I, N>,
     body_chunks: Vec<(u32, ReadBodyChunk<T, R, I, N>)>,

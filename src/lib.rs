@@ -4,7 +4,9 @@
 //! For more info on the GBX format check out <https://wiki.xaseco.org/wiki/GBX>.
 //! For a more complete GBX file reader and writer check out [GBX.NET](https://github.com/BigBang1112/gbx-net).
 
+/// Types for reading GBX nodes.
 pub mod read;
+/// Types for writing GBX nodes.
 pub mod write;
 
 mod classes {

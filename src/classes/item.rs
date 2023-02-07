@@ -12,6 +12,7 @@ pub struct Item {
 }
 
 impl Item {
+    /// Get a item reader.
     pub fn reader() -> ReaderBuilder<Self> {
         ItemModel::<Self>::reader()
     }
