@@ -538,7 +538,9 @@ pub struct Map {
     pub num_laps: Option<u32>,
     /// `true` if the map has no stadium.
     pub no_stadium: bool,
-    /// Optional thumbnail of the map as raw JPEG.
+    /// Optional thumbnail image of the map as raw JPEG.
+    ///
+    /// The image is 1024 by 1024.
     pub thumbnail: Option<Vec<u8>>,
     /// Optional texture mod.
     pub texture_mod: Option<ExternalFileRef>,
@@ -2417,7 +2419,7 @@ impl Default for Map {
         }
 
         Self {
-            name: String::from("Unnamed"),
+            name: String::default(),
             uid: RefCell::new(None),
             author_name: String::default(),
             author_uid: Id::default(),
