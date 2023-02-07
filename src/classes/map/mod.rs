@@ -6,15 +6,20 @@ use crate::ghost::Ghost;
 use crate::read::{self, ReadBodyChunk, Reader, ReaderBuilder};
 use crate::types::{ExternalFileRef, FileRef, Id, Vec3};
 use crate::write::{self, Writer, WriterBuilder};
+use num_bigint::BigUint;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use num_integer::Integer;
+use num_traits::{ToPrimitive, Zero};
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
 use std::borrow::BorrowMut;
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
 use std::io::{Cursor, Read, Seek, Write};
 use std::ops::Sub;
+use uuid::Uuid;
 
 /// Day time of the default night mood.
 pub const NIGHT_MOOD_TIME: u16 = 6554;
@@ -570,7 +575,7 @@ pub struct Map {
     /// Files embedded in the map.
     pub embedded_files: Option<EmbeddedFiles>,
 
-    uid: Option<Id>,
+    uid: RefCell<Option<Id>>,
 }
 
 impl Map {
@@ -586,7 +591,9 @@ impl Map {
     /// and the last 4 bytes a ZLIB CRC-32 checksum of the map serialized as
     /// GBX without user data and with an uncompressed body.
     pub fn uid(&self) -> Option<Id> {
-        self.uid.clone()
+        let uid = self.uid.take();
+        self.uid.replace(uid.clone());
+        uid
     }
 
     /// Get a map reader.
@@ -688,9 +695,50 @@ impl Map {
             ],
         )
     }
+}
 
+// TODO: check correctness
+fn base63_encode_url_safe(input: &[u8]) -> String {
+    const ALPHABET: &[u8] = b"_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    let mut output = String::new();
+    let mut value = BigUint::from_bytes_le(input);
+    let base = BigUint::from(ALPHABET.len());
+
+    while value > BigUint::zero() {
+        let remainder = value.mod_floor(&base).to_usize().unwrap_or(0);
+        output.push(ALPHABET[remainder] as char);
+        value /= &base;
+    }
+
+    output
+}
+
+impl Map {
     /// Get a writer for this map.
     pub fn writer(&self) -> WriterBuilder<Self> {
+        let mut buf = vec![];
+
+        self.writer_without_computing_uid()
+            .user_data(false)
+            .compress_body(false)
+            .write_to(&mut buf)
+            .unwrap();
+
+        let uuid = Uuid::new_v4();
+        let checksum = unsafe { libz_sys::crc32(0, buf.as_ptr(), buf.len() as u32) }; // TODO: check correctness
+
+        let mut uid = [0; 20];
+        uid[..16].copy_from_slice(uuid.as_bytes());
+        uid[16..].copy_from_slice(&checksum.to_le_bytes());
+
+        self.uid
+            .replace(Some(Id::new(base63_encode_url_safe(&uid))));
+
+        self.writer_without_computing_uid()
+    }
+
+    fn writer_without_computing_uid(&self) -> WriterBuilder<Self> {
         WriterBuilder::new(
             self,
             0x03043000,
@@ -796,7 +844,7 @@ impl Map {
         I: BorrowMut<read::IdState>,
     {
         r.u8()?;
-        self.uid = r.optional_id()?;
+        self.uid = RefCell::new(Some(r.id()?));
         r.u32()?;
         self.author_uid = r.id()?;
         self.name = r.string()?;
@@ -863,7 +911,7 @@ impl Map {
         match xml_reader.read_event().unwrap() {
             Event::Empty(e) if e.local_name().as_ref() == b"ident" => {
                 let attributes = xml_attributes_to_map(e.attributes());
-                self.uid = Some(Id::new(attributes.get("uid").unwrap().clone()));
+                self.uid = RefCell::new(Some(Id::new(attributes.get("uid").unwrap().clone())));
                 self.name = attributes.get("name").unwrap().clone();
                 self.author_uid = Id::new(attributes.get("author").unwrap().clone());
                 self.author_zone = attributes.get("authorzone").unwrap().clone();
@@ -1075,7 +1123,7 @@ impl Map {
         I: BorrowMut<read::IdState>,
         N: BorrowMut<read::NodeState>,
     {
-        self.uid = r.optional_id()?;
+        self.uid = RefCell::new(Some(r.id()?));
         r.u32()?;
         self.author_uid = r.id()?;
         self.name = r.string()?;
@@ -1497,7 +1545,7 @@ impl Map {
         I: BorrowMut<write::IdState>,
     {
         w.u8(11)?;
-        w.id(self.uid.as_ref().map(|id| id.as_str()))?;
+        w.id(self.uid.borrow().as_ref().map(|id| id.as_str()))?;
         w.u32(26)?;
         w.id(Some(&self.author_uid))?;
         w.string(&self.name)?;
@@ -1552,7 +1600,11 @@ impl Map {
                     .create_element("ident")
                     .with_attribute((
                         "uid",
-                        self.uid.as_ref().map(|id| id.as_str()).unwrap_or_default(),
+                        self.uid
+                            .borrow()
+                            .as_ref()
+                            .map(|id| id.as_str())
+                            .unwrap_or_default(),
                     ))
                     .with_attribute(("name", self.name.as_str()))
                     .with_attribute(("author", self.author_uid.as_str()))
@@ -1777,7 +1829,7 @@ impl Map {
         })?;
 
         w.u32(0x0304301F)?;
-        w.id(self.uid.as_ref().map(|id| id.as_str()))?;
+        w.id(self.uid.borrow().as_ref().map(|id| id.as_str()))?;
         w.u32(26)?;
         w.id(Some(&self.author_uid))?;
         w.string(&self.name)?;
@@ -2347,7 +2399,7 @@ impl Default for Map {
 
         Self {
             name: String::from("Unnamed"),
-            uid: None,
+            uid: RefCell::new(None),
             author_name: String::default(),
             author_uid: Id::default(),
             author_zone: String::default(),
