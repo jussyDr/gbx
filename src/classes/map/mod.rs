@@ -1,13 +1,13 @@
 /// Media tracker types.
 pub mod media;
 
-use crate::error::{ReadError, ReadResult, WriteResult};
 use crate::gbx::ReadBodyChunk;
 use crate::ghost::Ghost;
 use crate::reader::{self, Reader};
 use crate::types::{ExternalFileRef, FileRef, Id, Vec3};
 use crate::writer::{self, Writer};
 use crate::{gbx, ReaderBuilder, WriterBuilder};
+use crate::{read, write};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
@@ -161,7 +161,7 @@ pub struct Skin {
 }
 
 impl Skin {
-    fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -181,7 +181,7 @@ impl Skin {
         Ok(skin)
     }
 
-    fn read_chunk_03059002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03059002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -193,7 +193,7 @@ impl Skin {
         Ok(())
     }
 
-    fn read_chunk_03059003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03059003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -250,7 +250,7 @@ pub enum WaypointProperty {
 }
 
 impl WaypointProperty {
-    fn read<R, I, S>(r: &mut Reader<R, I, S>) -> ReadResult<Self>
+    fn read<R, I, S>(r: &mut Reader<R, I, S>) -> read::Result<Self>
     where
         R: Read + Seek,
     {
@@ -268,7 +268,7 @@ impl WaypointProperty {
         Ok(waypoint_property)
     }
 
-    fn read_chunk_2e009000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e009000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -429,7 +429,7 @@ pub struct Item {
 }
 
 impl Item {
-    fn read<R>(r: &mut Reader<R, reader::IdState>) -> ReadResult<Self>
+    fn read<R>(r: &mut Reader<R, reader::IdState>) -> read::Result<Self>
     where
         R: Read + Seek,
     {
@@ -448,7 +448,7 @@ impl Item {
         Ok(item)
     }
 
-    fn read_chunk_03101002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03101002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -706,7 +706,7 @@ impl Map {
     }
 }
 
-fn read_medal_times<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Option<(u32, u32, u32, u32)>>
+fn read_medal_times<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Option<(u32, u32, u32, u32)>>
 where
     R: Read,
 {
@@ -747,7 +747,7 @@ impl Map {
         }
     }
 
-    fn read_chunk_03043002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -772,24 +772,24 @@ fn does_deco_have_no_stadium(deco_id: &str) -> bool {
     deco_id.starts_with("NoStadium48x48") || deco_id.ends_with("16x12")
 }
 
-fn day_time_from_deco_id(deco_id: &str) -> ReadResult<u16> {
+fn day_time_from_deco_id(deco_id: &str) -> read::Result<u16> {
     let mood = deco_id
         .strip_prefix("48x48")
         .or(deco_id.strip_prefix("NoStadium48x48"))
         .or(deco_id.strip_suffix("16x12"))
-        .ok_or(ReadError(String::from("invalid decoration id")))?;
+        .ok_or(read::Error(String::from("invalid decoration id")))?;
 
     match mood {
         "Sunrise" => Ok(SUNRISE_MOOD_TIME),
         "Day" => Ok(DAY_MOOD_TIME),
         "Sunset" => Ok(SUNSET_MOOD_TIME),
         "Night" => Ok(NIGHT_MOOD_TIME),
-        _ => Err(ReadError(String::from("invalid decoration mood"))),
+        _ => Err(read::Error(String::from("invalid decoration mood"))),
     }
 }
 
 impl Map {
-    fn read_chunk_03043003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
@@ -822,7 +822,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043004<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043004<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -845,7 +845,7 @@ fn xml_attributes_to_map(attributes: Attributes) -> HashMap<String, String> {
 }
 
 impl Map {
-    fn read_chunk_03043005<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043005<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -947,7 +947,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043007<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043007<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -964,7 +964,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043008<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043008<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -978,7 +978,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_0304300d<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_0304300d<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
@@ -990,7 +990,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043011<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043011<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -1046,7 +1046,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043018<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043018<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1059,7 +1059,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043019<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043019<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1068,7 +1068,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_0304301f<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_0304301f<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -1146,7 +1146,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043022<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043022<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1155,7 +1155,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043024<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043024<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1164,7 +1164,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043025<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043025<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1174,7 +1174,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043026<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043026<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1183,7 +1183,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043028<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043028<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1193,7 +1193,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_0304302a<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_0304302a<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1202,7 +1202,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043040<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043040<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1222,7 +1222,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043042<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043042<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1236,7 +1236,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043048<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043048<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -1288,7 +1288,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043049<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043049<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -1305,7 +1305,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043054<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043054<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1335,7 +1335,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043056<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043056<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1352,7 +1352,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_0304305f<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_0304305f<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1377,7 +1377,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043062<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043062<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1401,7 +1401,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043063<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043063<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1413,7 +1413,7 @@ impl Map {
         Ok(())
     }
 
-    fn read_chunk_03043068<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03043068<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1445,7 +1445,7 @@ impl Map {
         Ok(())
     }
 
-    fn write_chunk_03043002<W, I, N>(&self, mut w: Writer<W, I, N>) -> WriteResult
+    fn write_chunk_03043002<W, I, N>(&self, mut w: Writer<W, I, N>) -> write::Result
     where
         W: Write,
     {
@@ -1490,7 +1490,7 @@ impl Map {
         deco_id
     }
 
-    fn write_chunk_03043003<W, I, N>(&self, mut w: Writer<W, I, N>) -> WriteResult
+    fn write_chunk_03043003<W, I, N>(&self, mut w: Writer<W, I, N>) -> write::Result
     where
         W: Write,
         I: BorrowMut<writer::IdState>,
@@ -1523,7 +1523,7 @@ impl Map {
         Ok(())
     }
 
-    fn write_chunk_03043004<W, I, N>(&self, mut w: Writer<W, I, N>) -> WriteResult
+    fn write_chunk_03043004<W, I, N>(&self, mut w: Writer<W, I, N>) -> write::Result
     where
         W: Write,
     {
@@ -1532,7 +1532,7 @@ impl Map {
         Ok(())
     }
 
-    fn write_chunk_03043005<W, I, N>(&self, mut w: Writer<W, I, N>) -> WriteResult
+    fn write_chunk_03043005<W, I, N>(&self, mut w: Writer<W, I, N>) -> write::Result
     where
         W: Write,
     {
@@ -1650,7 +1650,7 @@ impl Map {
         Ok(())
     }
 
-    fn write_chunk_03043007<W, I, N>(&self, mut w: Writer<W, I, N>) -> WriteResult
+    fn write_chunk_03043007<W, I, N>(&self, mut w: Writer<W, I, N>) -> write::Result
     where
         W: Write,
     {
@@ -1671,7 +1671,7 @@ impl Map {
         Ok(())
     }
 
-    fn write_chunk_03043008<W, I, N>(&self, mut w: Writer<W, I, N>) -> WriteResult
+    fn write_chunk_03043008<W, I, N>(&self, mut w: Writer<W, I, N>) -> write::Result
     where
         W: Write,
     {
@@ -1685,7 +1685,7 @@ impl Map {
         Ok(())
     }
 
-    fn write_body<W, I, N>(&self, w: &mut Writer<W, I, N>) -> WriteResult
+    fn write_body<W, I, N>(&self, w: &mut Writer<W, I, N>) -> write::Result
     where
         W: Write,
         I: BorrowMut<writer::IdState>,

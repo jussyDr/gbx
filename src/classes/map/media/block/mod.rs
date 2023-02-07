@@ -1,8 +1,8 @@
 /// Media block key types.
 pub mod key;
 
-use crate::error::ReadResult;
 use crate::ghost::EntityRecord;
+use crate::read;
 use crate::reader::{self, Reader};
 use crate::{FileRef, InternalFileRef, Rgb};
 use num_enum::TryFromPrimitive;
@@ -17,7 +17,7 @@ pub struct Effect {
 }
 
 impl Effect {
-    fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -54,7 +54,7 @@ impl Effect {
 pub struct Triangles;
 
 impl Triangles {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
     {
@@ -114,7 +114,7 @@ pub struct Color {
 }
 
 impl Color {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -162,7 +162,7 @@ impl Color {
 pub struct MotionBlur;
 
 impl MotionBlur {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -179,7 +179,7 @@ impl MotionBlur {
 pub struct PlayerCamera;
 
 impl PlayerCamera {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -218,7 +218,7 @@ pub struct Time {
 }
 
 impl Time {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -244,7 +244,7 @@ impl Time {
 pub struct OrbitalCamera;
 
 impl OrbitalCamera {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -280,7 +280,7 @@ impl OrbitalCamera {
 pub struct PathCamera;
 
 impl PathCamera {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -326,7 +326,7 @@ pub struct CustomCamera {
 }
 
 impl CustomCamera {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
     {
@@ -388,7 +388,7 @@ pub struct CameraShakeEffect {
 }
 
 impl CameraShakeEffect {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
     {
@@ -415,7 +415,7 @@ pub struct Image {
 }
 
 impl Image {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
         N: BorrowMut<reader::NodeState>,
@@ -436,7 +436,7 @@ pub struct MusicVolume {
 }
 
 impl MusicVolume {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -472,7 +472,7 @@ pub struct Sound {
 }
 
 impl Sound {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -519,7 +519,7 @@ pub struct Text {
 }
 
 impl Text {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
         N: BorrowMut<reader::NodeState>,
@@ -551,7 +551,7 @@ pub struct Trails {
 }
 
 impl Trails {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -576,7 +576,7 @@ pub struct TransitionFade {
 }
 
 impl TransitionFade {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -607,7 +607,7 @@ pub struct DepthOfField {
 }
 
 impl DepthOfField {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -639,7 +639,7 @@ pub struct ToneMapping {
 }
 
 impl ToneMapping {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -671,7 +671,7 @@ pub struct Bloom {
 }
 
 impl Bloom {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
     {
@@ -701,7 +701,7 @@ pub struct TimeSpeed {
 }
 
 impl TimeSpeed {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -729,7 +729,7 @@ pub struct Manialink {
 }
 
 impl Manialink {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -757,7 +757,7 @@ pub struct VehicleLight {
 }
 
 impl VehicleLight {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -780,7 +780,7 @@ impl VehicleLight {
 pub struct EditingCut;
 
 impl EditingCut {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -800,7 +800,7 @@ pub struct DirtyLens {
 }
 
 impl DirtyLens {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -827,7 +827,7 @@ pub struct ColorGrading {
 }
 
 impl ColorGrading {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -858,7 +858,7 @@ pub struct ManialinkInterface {
 }
 
 impl ManialinkInterface {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -885,7 +885,7 @@ pub struct Fog {
 }
 
 impl Fog {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {
@@ -923,7 +923,7 @@ impl Fog {
 pub struct Entity;
 
 impl Entity {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -1007,7 +1007,7 @@ pub struct OpponentVisibility {
 }
 
 impl OpponentVisibility {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
     {

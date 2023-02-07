@@ -4,8 +4,8 @@
 //! For more info on the GBX format check out <https://wiki.xaseco.org/wiki/GBX>.
 //! For a more complete GBX file reader and writer check out [GBX.NET](https://github.com/BigBang1112/gbx-net).
 
-/// Error types.
-pub mod error;
+pub mod read;
+pub mod write;
 
 mod classes {
     /// Types for `Block`.

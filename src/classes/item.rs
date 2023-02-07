@@ -1,7 +1,7 @@
 use crate::classes::model::Crystal;
-use crate::error::ReadResult;
 use crate::gbx::ReadBodyChunk;
 use crate::model::{ItemModel, Model};
+use crate::read;
 use crate::reader::Reader;
 use crate::{gbx, reader, ReaderBuilder};
 use std::borrow::BorrowMut;
@@ -19,7 +19,7 @@ impl Item {
         ItemModel::<Self>::reader()
     }
 
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -39,7 +39,7 @@ impl Item {
         Ok(item)
     }
 
-    fn read_chunk_2e026000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e026000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,

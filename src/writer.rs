@@ -1,4 +1,4 @@
-use crate::error::{WriteError, WriteResult};
+use crate::write::{Error, Result};
 use crate::FileRef;
 use indexmap::{indexset, IndexSet};
 use std::borrow::BorrowMut;
@@ -71,7 +71,7 @@ impl<W, I, N> Writer<W, I, N> {
 macro_rules! impl_write_num {
     ($($type:ident),+) => {
         $(
-            pub fn $type(&mut self, val: $type) -> WriteResult {
+            pub fn $type(&mut self, val: $type) -> Result {
                 self.bytes(&val.to_le_bytes())
             }
         )+
@@ -82,15 +82,15 @@ impl<W, I, N> Writer<W, I, N>
 where
     W: Write,
 {
-    pub fn bytes(&mut self, bytes: &[u8]) -> WriteResult {
+    pub fn bytes(&mut self, bytes: &[u8]) -> Result {
         self.inner
             .write_all(bytes)
-            .map_err(|err| WriteError(format!("{err}")))
+            .map_err(|err| Error(format!("{err}")))
     }
 
     impl_write_num!(u8, u16, u32, u64, f32);
 
-    pub fn bool(&mut self, val: bool) -> WriteResult {
+    pub fn bool(&mut self, val: bool) -> Result {
         if val {
             self.u32(1)
         } else {
@@ -98,12 +98,12 @@ where
         }
     }
 
-    pub fn string(&mut self, string: &str) -> WriteResult {
+    pub fn string(&mut self, string: &str) -> Result {
         self.u32(string.len() as u32)?;
         self.bytes(string.as_bytes())
     }
 
-    pub fn file_ref(&mut self, file_ref: Option<FileRef>) -> WriteResult {
+    pub fn file_ref(&mut self, file_ref: Option<FileRef>) -> Result {
         self.u8(3)?;
 
         match file_ref {
@@ -124,7 +124,7 @@ where
     W: Write,
     I: BorrowMut<IdState>,
 {
-    pub fn id(&mut self, id: Option<&str>) -> WriteResult {
+    pub fn id(&mut self, id: Option<&str>) -> Result {
         if !self.id_state.borrow().seen_id {
             self.u32(3)?;
             self.id_state.borrow_mut().seen_id = true;
@@ -144,9 +144,9 @@ where
         }
     }
 
-    pub fn skippable_chunk<F>(&mut self, chunk_id: u32, write_fn: F) -> WriteResult
+    pub fn skippable_chunk<F>(&mut self, chunk_id: u32, write_fn: F) -> Result
     where
-        F: Fn(Writer<&mut Vec<u8>, &mut IdState, &mut N>) -> WriteResult,
+        F: Fn(Writer<&mut Vec<u8>, &mut IdState, &mut N>) -> Result,
     {
         let mut chunk = vec![];
         {
@@ -171,9 +171,9 @@ where
     W: Write,
     N: BorrowMut<NodeState>,
 {
-    pub fn node<F>(&mut self, class_id: u32, write_fn: F) -> WriteResult
+    pub fn node<F>(&mut self, class_id: u32, write_fn: F) -> Result
     where
-        F: Fn(&mut Self) -> WriteResult,
+        F: Fn(&mut Self) -> Result,
     {
         self.u32(self.node_state.borrow().num_nodes)?;
         self.node_state.borrow_mut().num_nodes += 1;

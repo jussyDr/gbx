@@ -1,5 +1,5 @@
-use crate::error::ReadResult;
 use crate::gbx::{self, ReadBodyChunk};
+use crate::read;
 use crate::reader::{self, Reader};
 use crate::{Block, Item, ReaderBuilder};
 use std::borrow::BorrowMut;
@@ -12,7 +12,7 @@ use std::ops::{Deref, DerefMut};
 pub struct Material;
 
 impl Material {
-    fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -32,7 +32,7 @@ impl Material {
         Ok(material)
     }
 
-    fn read_chunk_090fd000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_090fd000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -66,7 +66,7 @@ impl Material {
         Ok(())
     }
 
-    fn read_chunk_090fd001<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_090fd001<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -81,7 +81,7 @@ impl Material {
         Ok(())
     }
 
-    fn read_chunk_090fd002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_090fd002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -103,7 +103,7 @@ pub struct Model {
 pub(crate) struct Crystal(pub Model);
 
 impl Crystal {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -127,7 +127,7 @@ impl Crystal {
         Ok(crystal)
     }
 
-    fn read_chunk_09051000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_09051000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -136,7 +136,7 @@ impl Crystal {
         Ok(())
     }
 
-    fn read_chunk_09003003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_09003003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -153,7 +153,7 @@ impl Crystal {
         Ok(())
     }
 
-    fn read_chunk_09003005<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_09003005<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
@@ -237,7 +237,7 @@ impl Crystal {
         Ok(())
     }
 
-    fn read_chunk_09003006<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_09003006<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -269,7 +269,7 @@ impl Crystal {
         Ok(())
     }
 
-    fn read_chunk_09003007<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_09003007<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -385,7 +385,7 @@ impl ItemModel<Item> {
 }
 
 impl<T> ItemModel<T> {
-    fn read_chunk_2e001003<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001003<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
@@ -404,7 +404,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e001004<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001004<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -415,7 +415,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e001006<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001006<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -424,7 +424,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e001009<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001009<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
@@ -436,7 +436,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e00100b<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00100b<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
@@ -448,7 +448,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e00100c<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00100c<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -457,7 +457,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e00100d<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00100d<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -466,7 +466,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e00100e<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00100e<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -476,7 +476,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e001010<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001010<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -488,7 +488,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e001011<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e001011<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -501,7 +501,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e002000<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002000<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -510,7 +510,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e002001<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002001<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -519,7 +519,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e002008<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002008<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -528,7 +528,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e002009<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002009<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -538,7 +538,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e00200c<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00200c<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -547,7 +547,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e002012<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002012<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -562,7 +562,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e002015<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002015<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -573,7 +573,7 @@ impl<T> ItemModel<T> {
 }
 
 impl ItemModel<Block> {
-    fn read_chunk_2e002019<R, I, N>(n: &mut Block, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002019<R, I, N>(n: &mut Block, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -860,7 +860,7 @@ impl ItemModel<Block> {
 }
 
 impl ItemModel<Item> {
-    fn read_chunk_2e002019<R, I, N>(n: &mut Item, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002019<R, I, N>(n: &mut Item, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -1149,7 +1149,7 @@ impl ItemModel<Item> {
 }
 
 impl<T> ItemModel<T> {
-    fn read_chunk_2e00201a<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00201a<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1158,7 +1158,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e00201c<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00201c<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         N: BorrowMut<reader::NodeState>,
@@ -1176,7 +1176,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e00201e<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00201e<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1191,7 +1191,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e00201f<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e00201f<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1206,7 +1206,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e002020<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002020<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1217,7 +1217,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e002021<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002021<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1227,7 +1227,7 @@ impl<T> ItemModel<T> {
         Ok(())
     }
 
-    fn read_chunk_2e002023<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_2e002023<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -1239,7 +1239,7 @@ impl<T> ItemModel<T> {
     }
 }
 
-fn read_mesh<R, I, N>(r: &mut Reader<R, I, N>, num_materials: u32) -> ReadResult<()>
+fn read_mesh<R, I, N>(r: &mut Reader<R, I, N>, num_materials: u32) -> read::Result<()>
 where
     R: Read,
 {

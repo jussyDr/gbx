@@ -1,16 +1,16 @@
 #![allow(clippy::type_complexity)]
 
-use crate::error::{ReadError, ReadResult, WriteError, WriteResult};
 use crate::reader::{self, Reader};
 use crate::writer::{self, Writer};
+use crate::{read, write};
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Cursor, Read, Seek, Write};
 use std::path::Path;
 
 pub enum ReadBodyChunk<T, R, I, N> {
-    Read(fn(&mut T, &mut Reader<R, I, N>) -> ReadResult<()>),
+    Read(fn(&mut T, &mut Reader<R, I, N>) -> read::Result<()>),
     Skip,
-    ReadSkippable(fn(&mut T, &mut Reader<R, I, N>) -> ReadResult<()>),
+    ReadSkippable(fn(&mut T, &mut Reader<R, I, N>) -> read::Result<()>),
 }
 
 pub struct ReaderBuilder<T> {
@@ -21,7 +21,7 @@ pub struct ReaderBuilder<T> {
     class_id: u32,
     header_chunks: Vec<(
         u32,
-        fn(&mut T, &mut Reader<&[u8], &mut reader::IdState>) -> ReadResult<()>,
+        fn(&mut T, &mut Reader<&[u8], &mut reader::IdState>) -> read::Result<()>,
     )>,
     body_chunks: Vec<(
         u32,
@@ -35,7 +35,7 @@ impl<T> ReaderBuilder<T> {
         class_id: u32,
         header_chunks: Vec<(
             u32,
-            fn(&mut T, &mut Reader<&[u8], &mut reader::IdState>) -> ReadResult<()>,
+            fn(&mut T, &mut Reader<&[u8], &mut reader::IdState>) -> read::Result<()>,
         )>,
         body_chunks: Vec<(
             u32,
@@ -62,7 +62,7 @@ impl<T> ReaderBuilder<T> {
         self
     }
 
-    pub fn read_from<R>(self, reader: R) -> ReadResult<T>
+    pub fn read_from<R>(self, reader: R) -> read::Result<T>
     where
         R: Read,
     {
@@ -71,41 +71,41 @@ impl<T> ReaderBuilder<T> {
         let mut r = Reader::new(reader);
 
         if r.bytes(3)? != b"GBX" {
-            return Err(ReadError(String::from("bad magic")));
+            return Err(read::Error(String::from("bad magic")));
         }
 
         if r.u16()? != 6 {
-            return Err(ReadError(String::from("version not supported")));
+            return Err(read::Error(String::from("version not supported")));
         }
 
         match r.u8()? {
             b'B' => {}
-            b'T' => return Err(ReadError(String::from("text format not supported"))),
-            _ => return Err(ReadError(String::from("bad format"))),
+            b'T' => return Err(read::Error(String::from("text format not supported"))),
+            _ => return Err(read::Error(String::from("bad format"))),
         }
 
         match r.u8()? {
             b'U' => {}
             b'C' => {
-                return Err(ReadError(String::from(
+                return Err(read::Error(String::from(
                     "compressed ref table not supported",
                 )))
             }
-            _ => return Err(ReadError(String::from("bad compression"))),
+            _ => return Err(read::Error(String::from("bad compression"))),
         }
 
         let body_compressed = match r.u8()? {
             b'C' => true,
             b'U' => false,
-            _ => return Err(ReadError(String::from("bad compression"))),
+            _ => return Err(read::Error(String::from("bad compression"))),
         };
 
         if r.u8()? != b'R' {
-            return Err(ReadError(String::from("bad unknown byte")));
+            return Err(read::Error(String::from("bad unknown byte")));
         }
 
         if r.u32()? != self.class_id {
-            return Err(ReadError(String::from("unexpected node class")));
+            return Err(read::Error(String::from("unexpected node class")));
         }
 
         let user_data_size = r.u32()?;
@@ -168,11 +168,11 @@ impl<T> ReaderBuilder<T> {
         Ok(node)
     }
 
-    pub fn read_from_file<P>(self, path: P) -> ReadResult<T>
+    pub fn read_from_file<P>(self, path: P) -> read::Result<T>
     where
         P: AsRef<Path>,
     {
-        let file = File::open(path).map_err(|err| ReadError(format!("{err}")))?;
+        let file = File::open(path).map_err(|err| read::Error(format!("{err}")))?;
         let reader = BufReader::new(file);
         self.read_from(reader)
     }
@@ -182,7 +182,7 @@ pub fn read_body<T, R, I, N>(
     node: &mut T,
     r: &mut Reader<R, I, N>,
     body_chunks: Vec<(u32, ReadBodyChunk<T, R, I, N>)>,
-) -> ReadResult<()>
+) -> read::Result<()>
 where
     R: Read + Seek,
 {
@@ -220,9 +220,10 @@ pub struct WriterBuilder<'a, T> {
     class_id: u32,
     header_chunks: Vec<(
         u32,
-        fn(&T, Writer<&mut Vec<u8>, &mut writer::IdState>) -> WriteResult,
+        fn(&T, Writer<&mut Vec<u8>, &mut writer::IdState>) -> write::Result,
     )>,
-    body: fn(&T, &mut Writer<&mut Vec<u8>, writer::IdState, &mut writer::NodeState>) -> WriteResult,
+    body:
+        fn(&T, &mut Writer<&mut Vec<u8>, writer::IdState, &mut writer::NodeState>) -> write::Result,
 }
 
 impl<'a, T> WriterBuilder<'a, T> {
@@ -231,12 +232,12 @@ impl<'a, T> WriterBuilder<'a, T> {
         class_id: u32,
         header_chunks: Vec<(
             u32,
-            fn(&T, Writer<&mut Vec<u8>, &mut writer::IdState>) -> WriteResult,
+            fn(&T, Writer<&mut Vec<u8>, &mut writer::IdState>) -> write::Result,
         )>,
         body: fn(
             &T,
             &mut Writer<&mut Vec<u8>, writer::IdState, &mut writer::NodeState>,
-        ) -> WriteResult,
+        ) -> write::Result,
     ) -> Self {
         Self {
             node,
@@ -246,7 +247,7 @@ impl<'a, T> WriterBuilder<'a, T> {
         }
     }
 
-    pub fn write_to<W>(self, writer: W) -> WriteResult
+    pub fn write_to<W>(self, writer: W) -> write::Result
     where
         W: Write,
     {
@@ -312,11 +313,11 @@ impl<'a, T> WriterBuilder<'a, T> {
         Ok(())
     }
 
-    pub fn write_to_file<P>(self, path: P) -> WriteResult
+    pub fn write_to_file<P>(self, path: P) -> write::Result
     where
         P: AsRef<Path>,
     {
-        let file = File::create(path).map_err(|err| WriteError(format!("{err}")))?;
+        let file = File::create(path).map_err(|err| write::Error(format!("{err}")))?;
         let writer = BufWriter::new(file);
         self.write_to(writer)
     }

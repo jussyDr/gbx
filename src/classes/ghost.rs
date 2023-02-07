@@ -1,5 +1,5 @@
-use crate::error::ReadResult;
 use crate::gbx::{self, ReadBodyChunk};
+use crate::read;
 use crate::reader::{self, Reader};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
@@ -9,7 +9,7 @@ use std::io::{Read, Seek};
 pub struct EntityRecord;
 
 impl EntityRecord {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
     {
@@ -23,7 +23,7 @@ impl EntityRecord {
         Ok(entity_record)
     }
 
-    fn read_chunk_0911f000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_0911f000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
     {
@@ -41,7 +41,7 @@ impl EntityRecord {
 pub struct Ghost;
 
 impl Ghost {
-    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> ReadResult<Self>
+    pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -91,7 +91,7 @@ impl Ghost {
         Ok(ghost)
     }
 
-    fn read_chunk_0303f006<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_0303f006<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -106,7 +106,7 @@ impl Ghost {
         Ok(())
     }
 
-    fn read_chunk_03092000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03092000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
         I: BorrowMut<reader::IdState>,
@@ -146,7 +146,7 @@ impl Ghost {
         Ok(())
     }
 
-    fn read_chunk_0309200c<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_0309200c<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -155,7 +155,7 @@ impl Ghost {
         Ok(())
     }
 
-    fn read_chunk_0309200e<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_0309200e<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -164,7 +164,7 @@ impl Ghost {
         Ok(())
     }
 
-    fn read_chunk_0309200f<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_0309200f<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
@@ -173,7 +173,7 @@ impl Ghost {
         Ok(())
     }
 
-    fn read_chunk_03092010<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_03092010<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
         I: BorrowMut<reader::IdState>,
@@ -183,7 +183,7 @@ impl Ghost {
         Ok(())
     }
 
-    fn read_chunk_0309201c<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> ReadResult<()>
+    fn read_chunk_0309201c<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
     {
