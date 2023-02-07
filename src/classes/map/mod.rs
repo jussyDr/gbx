@@ -6,10 +6,7 @@ use crate::ghost::Ghost;
 use crate::read::{self, ReadBodyChunk, Reader, ReaderBuilder};
 use crate::types::{ExternalFileRef, FileRef, Id, Vec3};
 use crate::write::{self, Writer, WriterBuilder};
-use num_bigint::BigUint;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use num_integer::Integer;
-use num_traits::{ToPrimitive, Zero};
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
 use std::borrow::BorrowMut;
@@ -697,21 +694,43 @@ impl Map {
     }
 }
 
-// TODO: check correctness
-fn base63_encode_url_safe(input: &[u8]) -> String {
+fn base63_encode_url_safe(mut input: Vec<u8>) -> String {
     const ALPHABET: &[u8] = b"_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     let mut output = String::new();
-    let mut value = BigUint::from_bytes_le(input);
-    let base = BigUint::from(ALPHABET.len());
 
-    while value > BigUint::zero() {
-        let remainder = value.mod_floor(&base).to_usize().unwrap_or(0);
-        output.push(ALPHABET[remainder] as char);
-        value /= &base;
+    if input.is_empty() {
+        return output;
     }
 
-    output
+    let mut last = input.len() - 1;
+
+    loop {
+        while input[last] == 0 {
+            if last == 0 {
+                return output;
+            }
+
+            last -= 1;
+        }
+
+        let mut i = last;
+        let mut m = 0;
+
+        loop {
+            let value = m * u8::MAX as u16 + input[i] as u16;
+            input[i] = (value / 63) as u8; // quotient
+            m = value % 63; // remainder
+
+            if i == 0 {
+                break;
+            }
+
+            i -= 1;
+        }
+
+        output.push(ALPHABET[m as usize] as char);
+    }
 }
 
 impl Map {
@@ -726,14 +745,14 @@ impl Map {
             .unwrap();
 
         let uuid = Uuid::new_v4();
-        let checksum = unsafe { libz_sys::crc32(0, buf.as_ptr(), buf.len() as u32) }; // TODO: check correctness
+        let checksum = unsafe { libz_sys::crc32(0, buf.as_ptr(), buf.len() as u32) };
 
         let mut uid = [0; 20];
         uid[..16].copy_from_slice(uuid.as_bytes());
         uid[16..].copy_from_slice(&checksum.to_le_bytes());
 
         self.uid
-            .replace(Some(Id::new(base63_encode_url_safe(&uid))));
+            .replace(Some(Id::new(base63_encode_url_safe(uid.to_vec()))));
 
         self.writer_without_computing_uid()
     }
