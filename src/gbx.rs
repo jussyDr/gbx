@@ -1,8 +1,7 @@
 #![allow(clippy::type_complexity)]
 
-use crate::reader::{self, Reader};
-use crate::writer::{self, Writer};
-use crate::{read, write};
+use crate::read::{self, Reader};
+use crate::write::{self, Writer};
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Cursor, Read, Seek, Write};
 use std::path::Path;
@@ -21,11 +20,11 @@ pub struct ReaderBuilder<T> {
     class_id: u32,
     header_chunks: Vec<(
         u32,
-        fn(&mut T, &mut Reader<&[u8], &mut reader::IdState>) -> read::Result<()>,
+        fn(&mut T, &mut Reader<&[u8], &mut read::IdState>) -> read::Result<()>,
     )>,
     body_chunks: Vec<(
         u32,
-        ReadBodyChunk<T, Cursor<Vec<u8>>, reader::IdState, reader::NodeState>,
+        ReadBodyChunk<T, Cursor<Vec<u8>>, read::IdState, read::NodeState>,
     )>,
 }
 
@@ -35,11 +34,11 @@ impl<T> ReaderBuilder<T> {
         class_id: u32,
         header_chunks: Vec<(
             u32,
-            fn(&mut T, &mut Reader<&[u8], &mut reader::IdState>) -> read::Result<()>,
+            fn(&mut T, &mut Reader<&[u8], &mut read::IdState>) -> read::Result<()>,
         )>,
         body_chunks: Vec<(
             u32,
-            ReadBodyChunk<T, Cursor<Vec<u8>>, reader::IdState, reader::NodeState>,
+            ReadBodyChunk<T, Cursor<Vec<u8>>, read::IdState, read::NodeState>,
         )>,
     ) -> Self {
         Self {
@@ -124,7 +123,7 @@ impl<T> ReaderBuilder<T> {
                 })?;
 
                 let mut header_chunks = self.header_chunks.into_iter();
-                let mut id_state = reader::IdState::new();
+                let mut id_state = read::IdState::new();
 
                 for (chunk_id, size) in user_data_chunks {
                     let (_, read_fn) = header_chunks.find(|(id, _)| *id == chunk_id).unwrap();
@@ -155,8 +154,8 @@ impl<T> ReaderBuilder<T> {
 
                 let mut r = Reader::with_id_and_node_state(
                     Cursor::new(body),
-                    reader::IdState::new(),
-                    reader::NodeState::new(num_nodes as usize),
+                    read::IdState::new(),
+                    read::NodeState::new(num_nodes as usize),
                 );
 
                 read_body(&mut node, &mut r, self.body_chunks)?;
@@ -220,10 +219,9 @@ pub struct WriterBuilder<'a, T> {
     class_id: u32,
     header_chunks: Vec<(
         u32,
-        fn(&T, Writer<&mut Vec<u8>, &mut writer::IdState>) -> write::Result,
+        fn(&T, Writer<&mut Vec<u8>, &mut write::IdState>) -> write::Result,
     )>,
-    body:
-        fn(&T, &mut Writer<&mut Vec<u8>, writer::IdState, &mut writer::NodeState>) -> write::Result,
+    body: fn(&T, &mut Writer<&mut Vec<u8>, write::IdState, &mut write::NodeState>) -> write::Result,
 }
 
 impl<'a, T> WriterBuilder<'a, T> {
@@ -232,11 +230,11 @@ impl<'a, T> WriterBuilder<'a, T> {
         class_id: u32,
         header_chunks: Vec<(
             u32,
-            fn(&T, Writer<&mut Vec<u8>, &mut writer::IdState>) -> write::Result,
+            fn(&T, Writer<&mut Vec<u8>, &mut write::IdState>) -> write::Result,
         )>,
         body: fn(
             &T,
-            &mut Writer<&mut Vec<u8>, writer::IdState, &mut writer::NodeState>,
+            &mut Writer<&mut Vec<u8>, write::IdState, &mut write::NodeState>,
         ) -> write::Result,
     ) -> Self {
         Self {
@@ -254,7 +252,7 @@ impl<'a, T> WriterBuilder<'a, T> {
         let mut user_data = vec![];
         {
             let mut w = Writer::new(&mut user_data);
-            let mut id_state = writer::IdState::new();
+            let mut id_state = write::IdState::new();
             let mut chunks = vec![];
 
             for (chunk_id, write_fn) in self.header_chunks {
@@ -281,10 +279,10 @@ impl<'a, T> WriterBuilder<'a, T> {
         }
 
         let mut body = vec![];
-        let mut node_state = writer::NodeState::new();
+        let mut node_state = write::NodeState::new();
         {
             let mut w =
-                Writer::with_id_and_node_state(&mut body, writer::IdState::new(), &mut node_state);
+                Writer::with_id_and_node_state(&mut body, write::IdState::new(), &mut node_state);
             (self.body)(self.node, &mut w)?;
 
             w.u32(0xFACADE01)?;

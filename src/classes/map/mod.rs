@@ -3,11 +3,10 @@ pub mod media;
 
 use crate::gbx::ReadBodyChunk;
 use crate::ghost::Ghost;
-use crate::reader::{self, Reader};
+use crate::read::{self, Reader};
 use crate::types::{ExternalFileRef, FileRef, Id, Vec3};
-use crate::writer::{self, Writer};
+use crate::write::{self, Writer};
 use crate::{gbx, ReaderBuilder, WriterBuilder};
-use crate::{read, write};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
@@ -164,8 +163,8 @@ impl Skin {
     fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         let mut skin = Self::default();
 
@@ -429,7 +428,7 @@ pub struct Item {
 }
 
 impl Item {
-    fn read<R>(r: &mut Reader<R, reader::IdState>) -> read::Result<Self>
+    fn read<R>(r: &mut Reader<R, read::IdState>) -> read::Result<Self>
     where
         R: Read + Seek,
     {
@@ -451,7 +450,7 @@ impl Item {
     fn read_chunk_03101002<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
+        I: BorrowMut<read::IdState>,
     {
         r.u32()?; // 8
         self.model_id = r.id()?;
@@ -792,7 +791,7 @@ impl Map {
     fn read_chunk_03043003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
-        I: BorrowMut<reader::IdState>,
+        I: BorrowMut<read::IdState>,
     {
         r.u8()?;
         self.uid = Some(r.id()?);
@@ -981,7 +980,7 @@ impl Map {
     fn read_chunk_0304300d<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
-        I: BorrowMut<reader::IdState>,
+        I: BorrowMut<read::IdState>,
     {
         let _player_model_id = r.optional_id()?;
         r.u32()?;
@@ -993,8 +992,8 @@ impl Map {
     fn read_chunk_03043011<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         r.node(0x0301B000, |r| {
             r.chunk_id(0x0301B000)?;
@@ -1071,8 +1070,8 @@ impl Map {
     fn read_chunk_0304301f<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         r.id()?;
         r.u32()?;
@@ -1211,7 +1210,7 @@ impl Map {
         let size = r.u32()?;
         let bytes = r.bytes(size as usize)?;
         {
-            let mut r = Reader::with_id_state(Cursor::new(bytes), reader::IdState::new());
+            let mut r = Reader::with_id_state(Cursor::new(bytes), read::IdState::new());
             r.u32()?;
             self.items = r.list(|r| r.flat_node(0x03101000, Item::read))?;
             r.list(|r| r.u32())?;
@@ -1239,7 +1238,7 @@ impl Map {
     fn read_chunk_03043048<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
+        I: BorrowMut<read::IdState>,
     {
         r.u32()?;
         r.u32()?;
@@ -1291,8 +1290,8 @@ impl Map {
     fn read_chunk_03043049<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         r.u32()?;
         self.intro_media = r.optional_node_owned(0x03079000, media::Clip::read)?;
@@ -1313,7 +1312,7 @@ impl Map {
         r.u32()?; // 0
         let size = r.u32()?;
         {
-            let mut r = Reader::with_id_state(r.take(size as u64), reader::IdState::new());
+            let mut r = Reader::with_id_state(r.take(size as u64), read::IdState::new());
             let embedded_file_ids = r.list(|r| {
                 let id = r.id()?;
                 r.u32()?; // 26
@@ -1493,7 +1492,7 @@ impl Map {
     fn write_chunk_03043003<W, I, N>(&self, mut w: Writer<W, I, N>) -> write::Result
     where
         W: Write,
-        I: BorrowMut<writer::IdState>,
+        I: BorrowMut<write::IdState>,
     {
         w.u8(11)?;
         w.id(self.uid.as_ref().map(|id| id.as_str()))?;
@@ -1688,8 +1687,8 @@ impl Map {
     fn write_body<W, I, N>(&self, w: &mut Writer<W, I, N>) -> write::Result
     where
         W: Write,
-        I: BorrowMut<writer::IdState>,
-        N: BorrowMut<writer::NodeState>,
+        I: BorrowMut<write::IdState>,
+        N: BorrowMut<write::NodeState>,
     {
         w.u32(0x0304300D)?;
         w.id(None)?;
@@ -1945,7 +1944,7 @@ impl Map {
         w.skippable_chunk(0x03043043, |mut w| {
             let mut bytes = vec![];
             {
-                let mut w = Writer::with_id_state(&mut bytes, writer::IdState::new());
+                let mut w = Writer::with_id_state(&mut bytes, write::IdState::new());
                 w.u32(2304)?;
                 for _ in 0..2304 {
                     w.u32(0x0311D000)?;

@@ -2,8 +2,7 @@
 pub mod key;
 
 use crate::ghost::EntityRecord;
-use crate::read;
-use crate::reader::{self, Reader};
+use crate::read::{self, Reader};
 use crate::{FileRef, InternalFileRef, Rgb};
 use num_enum::TryFromPrimitive;
 use std::borrow::BorrowMut;
@@ -418,7 +417,7 @@ impl Image {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
-        N: BorrowMut<reader::NodeState>,
+        N: BorrowMut<read::NodeState>,
     {
         r.chunk_id(0x030A5000)?;
         let effect = r.node_owned(0x07010000, Effect::read)?;
@@ -522,7 +521,7 @@ impl Text {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read,
-        N: BorrowMut<reader::NodeState>,
+        N: BorrowMut<read::NodeState>,
     {
         r.chunk_id(0x030A8001)?;
         let text = r.string()?;
@@ -926,8 +925,8 @@ impl Entity {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         r.chunk_id(0x0329F000)?;
         let version = r.u32()?;

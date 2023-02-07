@@ -1,3 +1,7 @@
+mod reader;
+
+pub(crate) use reader::{IdState, NodeState, Reader};
+
 use std::error;
 use std::fmt::{self, Display};
 use std::result;

@@ -21,9 +21,7 @@ mod classes {
 }
 
 mod gbx;
-mod reader;
 mod types;
-mod writer;
 
 pub use block::Block;
 pub use classes::{block, ghost, item, map, model};

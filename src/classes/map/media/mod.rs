@@ -1,8 +1,7 @@
 /// Media block types.
 pub mod block;
 
-use crate::read;
-use crate::reader::{self, Reader};
+use crate::read::{self, Reader};
 use crate::Vec3;
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
@@ -120,8 +119,8 @@ impl Clip {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         let mut clip = Self::default();
 
@@ -295,8 +294,8 @@ impl ClipGroup {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         let mut clip_group = Self::default();
 

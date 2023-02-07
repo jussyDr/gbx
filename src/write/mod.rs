@@ -1,3 +1,7 @@
+mod writer;
+
+pub(crate) use writer::{IdState, NodeState, Writer};
+
 use std::error;
 use std::fmt::{self, Display};
 use std::result;

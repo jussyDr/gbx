@@ -1,7 +1,6 @@
 use crate::gbx::{self, ReadBodyChunk};
 use crate::model::{Crystal, ItemModel, Model};
-use crate::read;
-use crate::reader::{self, Reader};
+use crate::read::{self, Reader};
 use crate::{Id, ReaderBuilder};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
@@ -23,8 +22,8 @@ impl Block {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         let mut block = Self::default();
 
@@ -45,8 +44,8 @@ impl Block {
     fn read_chunk_2e025000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         r.u32()?;
         self.archetype = r.id()?;

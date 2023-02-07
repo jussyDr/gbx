@@ -1,6 +1,5 @@
 use crate::gbx::{self, ReadBodyChunk};
-use crate::read;
-use crate::reader::{self, Reader};
+use crate::read::{self, Reader};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
@@ -44,8 +43,8 @@ impl Ghost {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         let mut ghost = Self::default();
 
@@ -109,8 +108,8 @@ impl Ghost {
     fn read_chunk_03092000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         let version = r.u32()?;
         r.id()?;
@@ -176,7 +175,7 @@ impl Ghost {
     fn read_chunk_03092010<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
-        I: BorrowMut<reader::IdState>,
+        I: BorrowMut<read::IdState>,
     {
         r.id()?;
 

@@ -1,6 +1,5 @@
 use crate::gbx::{self, ReadBodyChunk};
-use crate::read;
-use crate::reader::{self, Reader};
+use crate::read::{self, Reader};
 use crate::{Block, Item, ReaderBuilder};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
@@ -15,7 +14,7 @@ impl Material {
     fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
+        I: BorrowMut<read::IdState>,
     {
         let mut material = Self::default();
 
@@ -35,7 +34,7 @@ impl Material {
     fn read_chunk_090fd000<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
+        I: BorrowMut<read::IdState>,
     {
         let version = r.u32()?;
 
@@ -106,8 +105,8 @@ impl Crystal {
     pub(crate) fn read<R, I, N>(r: &mut Reader<R, I, N>) -> read::Result<Self>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         let mut crystal = Self::default();
 
@@ -139,8 +138,8 @@ impl Crystal {
     fn read_chunk_09003003<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         r.u32()?;
         self.materials = r.list(|r| {
@@ -156,8 +155,8 @@ impl Crystal {
     fn read_chunk_09003005<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         r.u32()?;
         let _layers = r.list(|r| {
@@ -388,7 +387,7 @@ impl<T> ItemModel<T> {
     fn read_chunk_2e001003<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
-        I: BorrowMut<reader::IdState>,
+        I: BorrowMut<read::IdState>,
     {
         r.optional_id()?;
         r.u32()?;
@@ -427,7 +426,7 @@ impl<T> ItemModel<T> {
     fn read_chunk_2e001009<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
-        I: BorrowMut<reader::IdState>,
+        I: BorrowMut<read::IdState>,
     {
         let _name = r.string()?;
         r.u32()?;
@@ -439,7 +438,7 @@ impl<T> ItemModel<T> {
     fn read_chunk_2e00100b<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read,
-        I: BorrowMut<reader::IdState>,
+        I: BorrowMut<read::IdState>,
     {
         r.u32()?;
         r.u32()?;
@@ -576,8 +575,8 @@ impl ItemModel<Block> {
     fn read_chunk_2e002019<R, I, N>(n: &mut Block, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         let version = r.u32()?;
         r.u32()?;
@@ -863,8 +862,8 @@ impl ItemModel<Item> {
     fn read_chunk_2e002019<R, I, N>(n: &mut Item, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        I: BorrowMut<reader::IdState>,
-        N: BorrowMut<reader::NodeState>,
+        I: BorrowMut<read::IdState>,
+        N: BorrowMut<read::NodeState>,
     {
         let version = r.u32()?;
         r.u32()?;
@@ -1161,7 +1160,7 @@ impl<T> ItemModel<T> {
     fn read_chunk_2e00201c<R, I, N>(_: &mut T, r: &mut Reader<R, I, N>) -> read::Result<()>
     where
         R: Read + Seek,
-        N: BorrowMut<reader::NodeState>,
+        N: BorrowMut<read::NodeState>,
     {
         r.u32()?;
         r.node(0x2E020000, |r| {
