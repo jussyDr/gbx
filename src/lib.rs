@@ -20,12 +20,10 @@ mod classes {
     pub mod model;
 }
 
-mod gbx;
 mod types;
 
 pub use block::Block;
 pub use classes::{block, ghost, item, map, model};
-pub use gbx::{ReaderBuilder, WriterBuilder};
 pub use ghost::Ghost;
 pub use item::Item;
 pub use map::Map;

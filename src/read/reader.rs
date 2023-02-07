@@ -7,6 +7,7 @@ use std::io::{Read, Seek, SeekFrom, Take};
 use std::iter;
 use std::mem::size_of;
 
+#[derive(Default)]
 pub struct IdState {
     seen_id: bool,
     ids: Vec<Id>,
@@ -14,10 +15,7 @@ pub struct IdState {
 
 impl IdState {
     pub fn new() -> Self {
-        Self {
-            seen_id: false,
-            ids: vec![],
-        }
+        Self::default()
     }
 }
 

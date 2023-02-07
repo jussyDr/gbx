@@ -1,6 +1,5 @@
-use crate::gbx::{self, ReadBodyChunk};
-use crate::read::{self, Reader};
-use crate::{Block, Item, ReaderBuilder};
+use crate::read::{self, ReadBodyChunk, Reader, ReaderBuilder};
+use crate::{Block, Item};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 use std::marker::PhantomData;
@@ -18,7 +17,7 @@ impl Material {
     {
         let mut material = Self::default();
 
-        gbx::read_body(
+        read::read_body(
             &mut material,
             r,
             vec![
@@ -110,7 +109,7 @@ impl Crystal {
     {
         let mut crystal = Self::default();
 
-        gbx::read_body(
+        read::read_body(
             &mut crystal,
             r,
             vec![

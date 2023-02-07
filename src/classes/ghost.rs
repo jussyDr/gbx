@@ -1,5 +1,4 @@
-use crate::gbx::{self, ReadBodyChunk};
-use crate::read::{self, Reader};
+use crate::read::{self, ReadBodyChunk, Reader};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
@@ -48,7 +47,7 @@ impl Ghost {
     {
         let mut ghost = Self::default();
 
-        gbx::read_body(
+        read::read_body(
             &mut ghost,
             r,
             vec![

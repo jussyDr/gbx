@@ -1,8 +1,6 @@
 use crate::classes::model::Crystal;
-use crate::gbx::ReadBodyChunk;
 use crate::model::{ItemModel, Model};
-use crate::read::{self, Reader};
-use crate::{gbx, ReaderBuilder};
+use crate::read::{self, ReadBodyChunk, Reader, ReaderBuilder};
 use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
@@ -26,7 +24,7 @@ impl Item {
     {
         let mut item = Self::default();
 
-        gbx::read_body(
+        read::read_body(
             &mut item,
             r,
             vec![

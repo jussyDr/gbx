@@ -1,12 +1,10 @@
 /// Media tracker types.
 pub mod media;
 
-use crate::gbx::ReadBodyChunk;
 use crate::ghost::Ghost;
-use crate::read::{self, Reader};
+use crate::read::{self, ReadBodyChunk, Reader, ReaderBuilder};
 use crate::types::{ExternalFileRef, FileRef, Id, Vec3};
-use crate::write::{self, Writer};
-use crate::{gbx, ReaderBuilder, WriterBuilder};
+use crate::write::{self, Writer, WriterBuilder};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
@@ -168,7 +166,7 @@ impl Skin {
     {
         let mut skin = Self::default();
 
-        gbx::read_body(
+        read::read_body(
             &mut skin,
             r,
             vec![
@@ -255,7 +253,7 @@ impl WaypointProperty {
     {
         let mut waypoint_property = Self::default();
 
-        gbx::read_body(
+        read::read_body(
             &mut waypoint_property,
             r,
             vec![
@@ -434,7 +432,7 @@ impl Item {
     {
         let mut item = Self::default();
 
-        gbx::read_body(
+        read::read_body(
             &mut item,
             r,
             vec![
