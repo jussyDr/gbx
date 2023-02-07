@@ -22,6 +22,7 @@ mod classes {
     pub mod model;
 }
 
+mod fmt;
 mod types;
 
 pub use block::Block;

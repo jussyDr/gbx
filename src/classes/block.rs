@@ -5,7 +5,7 @@ use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
 /// Type corresponding to the file extension `Block.Gbx`.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Block {
     /// ID of the block info archetype.
     pub archetype: Id,

@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 /// Material of a model.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Material;
 
 impl Material {
@@ -91,7 +91,7 @@ impl Material {
 }
 
 /// Model.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Model {
     /// Materials used in the model.
     pub materials: Vec<Material>,

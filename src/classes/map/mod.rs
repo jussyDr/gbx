@@ -1,6 +1,7 @@
 /// Media tracker types.
 pub mod media;
 
+use crate::fmt::{DebugOption, DebugVec};
 use crate::ghost::Ghost;
 use crate::read::{self, ReadBodyChunk, Reader, ReaderBuilder};
 use crate::types::{ExternalFileRef, FileRef, Id, Vec3};
@@ -11,6 +12,7 @@ use quick_xml::events::Event;
 use std::borrow::BorrowMut;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::fmt::{self, Debug};
 use std::io::{Cursor, Read, Seek, Write};
 use std::ops::Sub;
 
@@ -24,6 +26,7 @@ pub const DAY_MOOD_TIME: u16 = 33041;
 pub const SUNSET_MOOD_TIME: u16 = 52920;
 
 /// Map validation.
+#[derive(Debug)]
 pub struct Validation {
     /// Bronze medal time in milliseconds.
     pub bronze_time: u32,
@@ -2368,5 +2371,33 @@ impl Default for Map {
             ambiance_media: None,
             embedded_files: None,
         }
+    }
+}
+
+impl Debug for Map {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Map")
+            .field("name", &self.name)
+            .field("author_name", &self.author_name)
+            .field("author_zone", &self.author_zone)
+            .field("validation", &self.validation)
+            .field("cost", &self.cost)
+            .field("num_laps", &self.num_laps)
+            .field("num_cps", &self.num_cps)
+            .field("no_stadium", &self.no_stadium)
+            .field("thumbnail", &DebugOption(&self.thumbnail))
+            .field("texture_mod", &self.texture_mod)
+            .field("day_time", &self.day_time)
+            .field("size", &self.size)
+            .field("blocks", &DebugVec(&self.blocks))
+            .field("music", &self.music)
+            .field("items", &DebugVec(&self.items))
+            .field("baked_blocks", &DebugVec(&self.baked_blocks))
+            .field("intro_media", &DebugOption(&self.intro_media))
+            .field("intro_media", &DebugOption(&self.podium_media))
+            .field("intro_media", &DebugOption(&self.in_game_media))
+            .field("intro_media", &DebugOption(&self.end_race_media))
+            .field("intro_media", &DebugOption(&self.ambiance_media))
+            .finish()
     }
 }

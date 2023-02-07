@@ -35,7 +35,7 @@ impl EntityRecord {
 }
 
 /// Type corresponding to the file extension `Ghost.Gbx`.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Ghost;
 
 impl Ghost {

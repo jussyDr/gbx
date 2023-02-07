@@ -5,7 +5,7 @@ use std::borrow::BorrowMut;
 use std::io::{Read, Seek};
 
 /// Type corresponding to the file extension `Item.Gbx`.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Item {
     /// Model of the item.
     pub model: Model,
