@@ -526,8 +526,12 @@ pub struct EmbeddedFiles {
 /// ```
 pub struct Map {
     /// Name of the map.
+    ///
+    /// The name supports [text styling](https://wiki.trackmania.io/en/content-creation/text-styling).
     pub name: String,
     /// Name of the map author.
+    ///
+    /// The author name supports [text styling](https://wiki.trackmania.io/en/content-creation/text-styling).
     pub author_name: String,
     /// Unique ID of the map author.
     pub author_uid: Id,
@@ -562,10 +566,6 @@ pub struct Map {
     pub music: Option<FileRef>,
     /// All items placed inside of the map.
     pub items: Vec<Item>,
-    /// All grass blocks and clips inside the map.
-    ///
-    /// The `skin` and `waypoint_property` fields of the baked blocks are always `None`.
-    pub baked_blocks: Vec<BlockType>,
     /// Optional MediaTracker clip for the map intro.
     pub intro_media: Option<media::Clip>,
     /// Optional MediaTracker clip for the podium.
@@ -580,6 +580,7 @@ pub struct Map {
     pub embedded_files: Option<EmbeddedFiles>,
 
     uid: RefCell<Option<Id>>,
+    baked_blocks: Vec<BlockType>,
 }
 
 impl Map {
@@ -598,6 +599,13 @@ impl Map {
         let uid = self.uid.take();
         self.uid.replace(uid.clone());
         uid
+    }
+
+    /// All grass blocks and clips inside the map.
+    ///
+    /// The `skin` and `waypoint_property` fields of the baked blocks are always `None`.
+    pub fn baked_blocks(&self) -> &Vec<BlockType> {
+        &self.baked_blocks
     }
 
     /// Get a map reader.
