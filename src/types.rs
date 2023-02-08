@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::fmt::{self, Debug, Display};
 use std::hash::{Hash, Hasher};
 use std::ops::{Add, Deref};
@@ -147,9 +148,12 @@ impl Deref for Id {
     }
 }
 
-impl Hash for Id {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_str().hash(state);
+impl Borrow<str> for Id {
+    fn borrow(&self) -> &str {
+        match self.0 {
+            None => "",
+            Some(ref rc) => rc.borrow(),
+        }
     }
 }
 
@@ -160,6 +164,12 @@ impl PartialEq for Id {
 }
 
 impl Eq for Id {}
+
+impl Hash for Id {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_str().hash(state);
+    }
+}
 
 impl Debug for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
