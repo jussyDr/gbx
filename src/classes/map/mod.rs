@@ -309,9 +309,9 @@ pub struct Block {
     pub coord: Vec3<u8>,
     /// `true` if the block is a ground block variant.
     pub is_ground: bool,
-    /// Skin of the block, e.g. for signs.
+    /// Optional skin of the block.
     pub skin: Option<Box<Skin>>,
-    /// Waypoint property.
+    /// Optional waypoint property.
     pub waypoint_property: Option<WaypointProperty>,
     /// Variant index of the block.
     pub variant_index: u8,
@@ -328,9 +328,9 @@ pub struct Block {
 pub struct FreeBlock {
     /// ID of the block's model.
     pub model_id: Id,
-    /// Skin of the block, e.g. for signs.
+    /// Optional skin of the block.
     pub skin: Option<Box<Skin>>,
-    /// Waypoint property.
+    /// Optional waypoint property.
     pub waypoint_property: Option<WaypointProperty>,
     /// Absolute position of the block.
     pub pos: Vec3<f32>,
@@ -428,6 +428,8 @@ pub struct Item {
     pub anim_offset: PhaseOffset,
     /// Lightmap quality of the item.
     pub lightmap_quality: LightmapQuality,
+    /// Optional skin of the item.
+    pub skin: Option<Skin>,
 }
 
 impl Item {
@@ -476,7 +478,10 @@ impl Item {
         self.pivot_pos.z = r.f32()?;
         let _scale = r.f32()?;
         if flags & 0x0004 != 0 {
-            r.optional_file_ref()?;
+            self.skin = Some(Skin {
+                skin: r.optional_file_ref()?,
+                effect: None,
+            });
         }
         r.u32()?; // 0
         r.u32()?; // 0
@@ -494,9 +499,9 @@ pub struct EmbeddedFiles {
     /// IDs of the files embedded in the map.
     ///
     /// The length is equal to the number of files in the `embedded_files` ZIP archive.
-    pub embedded_file_ids: Vec<Id>,
+    pub file_ids: Vec<Id>,
     /// All files embedded in the map as a raw ZIP archive.
-    pub embedded_files: Vec<u8>,
+    pub files: Vec<u8>,
 }
 
 /// Type corresponding to the file extension `Map.Gbx`.
@@ -585,7 +590,7 @@ impl Map {
 
     /// Get the unique ID of the map.
     ///
-    /// The ID is a 20 byte value which is URL-safe Base63 encoded.
+    /// The UID is a 20 byte value which is URL-safe Base63 encoded.
     /// The first 16 bytes are a v4 UUID,
     /// and the last 4 bytes a ZLIB CRC-32 checksum of the map serialized as
     /// GBX without user data and with an uncompressed body.
@@ -684,7 +689,10 @@ impl Map {
                     ReadBodyChunk::ReadSkippable(Self::read_chunk_03043063),
                 ),
                 (0x03043064, ReadBodyChunk::Skip),
-                (0x03043065, ReadBodyChunk::Skip),
+                (
+                    0x03043065,
+                    ReadBodyChunk::ReadSkippable(Self::read_chunk_03043065),
+                ),
                 (0x03043067, ReadBodyChunk::Skip),
                 (
                     0x03043068,
@@ -737,6 +745,8 @@ fn base63_encode_url_safe(mut input: Vec<u8>) -> String {
 
 impl Map {
     /// Get a writer for this map.
+    ///
+    /// Every time this function is called, the UID of the map is recomputed.
     pub fn writer(&self) -> WriterBuilder<Self> {
         let mut buf = vec![];
 
@@ -825,7 +835,7 @@ impl Map {
         r.u32()?;
         self.set_validation_times(read_medal_times(r)?);
         self.cost = r.u32()?;
-        let is_multilap = r.bool()?;
+        let is_multilap = r.bool32()?;
         r.u32()?;
         r.u32()?;
         r.u32()?;
@@ -1021,7 +1031,7 @@ impl Map {
     where
         R: Read,
     {
-        if r.bool()? {
+        if r.bool32()? {
             let thumbnail_size = r.u32()?;
             r.bytes(15)?;
             self.thumbnail = Some(r.bytes(thumbnail_size as usize)?);
@@ -1068,7 +1078,7 @@ impl Map {
     {
         r.node(0x0301B000, |r| {
             r.chunk_id(0x0301B000)?;
-            if r.bool()? {
+            if r.bool32()? {
                 r.id()?;
                 r.u32()?;
                 r.id()?;
@@ -1105,7 +1115,7 @@ impl Map {
             r.skippable_chunk_id(0x0305B00E)?;
             let _map_type = r.string()?;
             let _map_style = r.string()?;
-            let _is_validated = r.bool()?;
+            let _is_validated = r.bool32()?;
 
             r.node_end()?;
 
@@ -1120,7 +1130,7 @@ impl Map {
     where
         R: Read,
     {
-        if r.bool()? {
+        if r.bool32()? {
             self.num_laps = Some(r.u32()?)
         } else {
             r.u32()?;
@@ -1384,7 +1394,7 @@ impl Map {
         let size = r.u32()?;
         {
             let mut r = Reader::with_id_state(r.take(size as u64), read::IdState::new());
-            let embedded_file_ids = r.list(|r| {
+            let file_ids = r.list(|r| {
                 let id = r.id()?;
                 r.u32()?; // 26
                 let _author_id = r.optional_id()?; // "pTuyJG9STcCN_11BiU3t0Q"
@@ -1393,11 +1403,8 @@ impl Map {
             })?;
             let size = r.u32()?;
             if size > 0 {
-                let bytes = r.bytes(size as usize)?;
-                self.embedded_files = Some(EmbeddedFiles {
-                    embedded_file_ids,
-                    embedded_files: bytes,
-                });
+                let files = r.bytes(size as usize)?;
+                self.embedded_files = Some(EmbeddedFiles { file_ids, files });
             }
             r.u32()?; // 0
         }
@@ -1416,7 +1423,7 @@ impl Map {
             self.day_time = day_time as u16;
         }
         r.u32()?;
-        let _dynamic_daylight = r.bool()?;
+        let _dynamic_daylight = r.bool32()?;
         let _day_duration = r.u32()?;
 
         Ok(())
@@ -1478,6 +1485,20 @@ impl Map {
         r.u32()?;
         for item in &mut self.items {
             item.anim_offset = PhaseOffset::try_from(r.u8()?).unwrap()
+        }
+
+        Ok(())
+    }
+
+    fn read_chunk_03043065<R, I, N>(&mut self, r: &mut Reader<R, I, N>) -> read::Result<()>
+    where
+        R: Read,
+    {
+        r.u32()?;
+        for item in &mut self.items {
+            if r.bool8()? {
+                item.skin.as_mut().unwrap().effect = r.optional_file_ref()?;
+            }
         }
 
         Ok(())

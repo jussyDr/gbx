@@ -183,9 +183,9 @@ impl Clip {
 
                 r.chunk_id(0x03078005)?;
                 r.u32()?;
-                let keep_last_block_active = r.bool()?;
+                let keep_last_block_active = r.bool32()?;
                 r.u32()?;
-                let repeat_track_segment = r.bool()?;
+                let repeat_track_segment = r.bool32()?;
                 let start_time = r.f32()?;
                 let end_time = r.f32()?;
 
@@ -202,16 +202,16 @@ impl Clip {
             })
         })?;
         clip.name = r.string()?;
-        clip.stop_on_leave = r.bool()?;
+        clip.stop_on_leave = r.bool32()?;
         r.u32()?;
-        clip.stop_on_respawn = r.bool()?;
+        clip.stop_on_respawn = r.bool32()?;
         r.u32()?;
         r.f32()?;
         r.u32()?;
 
         r.optional_skippable_chunk(0x0307900E, |r| {
             r.u32()?;
-            clip.can_trigger_before_start = r.bool()?;
+            clip.can_trigger_before_start = r.bool32()?;
 
             Ok(())
         })?;

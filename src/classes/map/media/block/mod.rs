@@ -334,9 +334,9 @@ impl CustomCamera {
         let keys = r.list(|r| {
             let _time = r.f32()?;
             let _interpolation = r.u32()?;
-            let _anchor_rotation = r.bool()?;
+            let _anchor_rotation = r.bool32()?;
             let _anchor = r.u32()?; // 0xFFFFFFFF = None, 0 = Local Player
-            let _show_anchor = r.bool()?;
+            let _show_anchor = r.bool32()?;
             let _target = r.u32()?; // 0xFFFFFFFF = None, 0 = Local Player
             let _x = r.f32()?;
             let _y = r.f32()?;
@@ -478,10 +478,10 @@ impl Sound {
         r.chunk_id(0x030A7003)?;
         r.u32()?;
         let play_count = r.u32()?;
-        let is_looping = r.bool()?;
-        let is_music = r.bool()?;
+        let is_looping = r.bool32()?;
+        let is_music = r.bool32()?;
         r.u32()?;
-        let _audio_to_speech = r.bool()?;
+        let _audio_to_speech = r.bool32()?;
         let _audio_to_speech_target = r.u32()?;
 
         r.chunk_id(0x030A7004)?;

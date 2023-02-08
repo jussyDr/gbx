@@ -37,7 +37,7 @@ impl Material {
     {
         let version = r.u32()?;
 
-        let is_game_material = if version >= 11 { r.bool_u8()? } else { false };
+        let is_game_material = if version >= 11 { r.bool8()? } else { false };
         r.optional_id()?;
         r.u32()?;
         r.u32()?;
@@ -164,7 +164,7 @@ impl Crystal {
             r.u32()?;
             r.id()?;
             let _name = r.string()?;
-            let _is_enabled = r.bool()?;
+            let _is_enabled = r.bool32()?;
             r.u32()?;
 
             match layer_type {

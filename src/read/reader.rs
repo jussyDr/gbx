@@ -107,7 +107,7 @@ where
 
     impl_read_num!(u8, u16, u32, u64, i16, f32);
 
-    pub fn bool(&mut self) -> Result<bool> {
+    pub fn bool32(&mut self) -> Result<bool> {
         match self.u32()? {
             0 => Ok(false),
             1 => Ok(true),
@@ -115,7 +115,7 @@ where
         }
     }
 
-    pub fn bool_u8(&mut self) -> Result<bool> {
+    pub fn bool8(&mut self) -> Result<bool> {
         match self.u8()? {
             0 => Ok(false),
             1 => Ok(true),

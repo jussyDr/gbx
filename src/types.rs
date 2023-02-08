@@ -42,11 +42,11 @@ where
 /// RGB color.
 #[derive(Clone, Debug)]
 pub struct Rgb {
-    /// Red.
+    /// Red. [0.0, 1.0]
     pub red: f32,
-    /// Green.
+    /// Green. [0.0, 1.0]
     pub green: f32,
-    /// Blue.
+    /// Blue. [0.0, 1.0]
     pub blue: f32,
 }
 
@@ -60,7 +60,7 @@ pub struct InternalFileRef {
 /// Reference to an external file.
 #[derive(Clone, Debug)]
 pub struct ExternalFileRef {
-    /// Hash digest of the file.
+    /// Hash digest of the file created using SHA-256.
     pub hash: [u8; 32],
     /// Internal path to the file.
     pub path: PathBuf,
