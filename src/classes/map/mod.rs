@@ -496,12 +496,12 @@ impl Item {
 
 /// Files embedded in a map.
 pub struct EmbeddedFiles {
-    /// IDs of the files embedded in the map.
+    /// Internal paths of the files embedded in the map.
     ///
     /// The length is equal to the number of files in the `embedded_files` ZIP archive.
-    pub file_ids: Vec<Id>,
+    pub paths: Vec<Id>,
     /// All files embedded in the map as a raw ZIP archive.
-    pub files: Vec<u8>,
+    pub archive: Vec<u8>,
 }
 
 /// Type corresponding to the file extension `Map.Gbx`.
@@ -1402,17 +1402,17 @@ impl Map {
         let size = r.u32()?;
         {
             let mut r = Reader::with_id_state(r.take(size as u64), read::IdState::new());
-            let file_ids = r.list(|r| {
-                let id = r.id()?;
+            let paths = r.list(|r| {
+                let path = r.id()?;
                 r.u32()?; // 26
                 let _author_id = r.optional_id()?; // "pTuyJG9STcCN_11BiU3t0Q"
 
-                Ok(id)
+                Ok(path)
             })?;
             let size = r.u32()?;
             if size > 0 {
-                let files = r.bytes(size as usize)?;
-                self.embedded_files = Some(EmbeddedFiles { file_ids, files });
+                let archive = r.bytes(size as usize)?;
+                self.embedded_files = Some(EmbeddedFiles { archive, paths });
             }
             r.u32()?; // 0
         }
