@@ -769,7 +769,7 @@ impl Map {
 
         let mut uid = [0; 20];
         uid[..16].copy_from_slice(uuid.as_bytes());
-        uid[16..].copy_from_slice(&checksum.to_le_bytes());
+        uid[16..].copy_from_slice(&checksum.to_le_bytes()[..4]);
 
         self.uid
             .replace(Some(Id::new(base63_encode_url_safe(uid.to_vec()))));
