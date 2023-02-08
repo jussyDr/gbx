@@ -1,4 +1,5 @@
 use std::fmt::{self, Debug, Display};
+use std::hash::{Hash, Hasher};
 use std::ops::{Add, Deref};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -145,6 +146,20 @@ impl Deref for Id {
         }
     }
 }
+
+impl Hash for Id {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_str().hash(state);
+    }
+}
+
+impl PartialEq for Id {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_str().eq(other.as_str())
+    }
+}
+
+impl Eq for Id {}
 
 impl Debug for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
