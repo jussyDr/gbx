@@ -390,7 +390,7 @@ impl<T> ItemModel<T> {
     {
         r.optional_id()?;
         r.u32()?;
-        r.id()?;
+        let _author_uid = r.id()?;
         r.u32()?;
         let _name = r.string()?;
         r.u32()?;
@@ -441,7 +441,7 @@ impl<T> ItemModel<T> {
     {
         r.u32()?;
         r.u32()?;
-        r.id()?;
+        let _author_uid = r.id()?;
 
         Ok(())
     }
@@ -459,7 +459,7 @@ impl<T> ItemModel<T> {
     where
         R: Read,
     {
-        r.string()?;
+        let _description = r.string()?;
 
         Ok(())
     }

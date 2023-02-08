@@ -498,7 +498,7 @@ impl Item {
 pub struct EmbeddedFiles {
     /// Internal paths of the files embedded in the map.
     ///
-    /// The length is equal to the number of files in the `embedded_files` ZIP archive.
+    /// The order of the paths corresponds to the order of the files in the archive.
     pub paths: Vec<Id>,
     /// All files embedded in the map as a raw ZIP archive.
     pub archive: Vec<u8>,
