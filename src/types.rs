@@ -22,6 +22,15 @@ impl<T> Vec3<T> {
     }
 }
 
+impl<T> From<[T; 3]> for Vec3<T>
+where
+    T: Copy,
+{
+    fn from(arr: [T; 3]) -> Self {
+        Self::new(arr[0], arr[1], arr[2])
+    }
+}
+
 impl Copy for Vec3<u8> {}
 
 impl<T> Add for Vec3<T>

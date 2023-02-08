@@ -418,7 +418,7 @@ pub struct Item {
     pub coord: Vec3<u8>,
     /// Absolute position inside the map.
     pub pos: Vec3<f32>,
-    /// Waypoint property.
+    /// Optional waypoint property.
     pub waypoint_property: Option<WaypointProperty>,
     /// Pivot position of the item.
     pub pivot_pos: Vec3<f32>,
