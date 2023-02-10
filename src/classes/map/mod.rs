@@ -44,7 +44,7 @@ pub struct Validation {
 
 /// Cardinal direction of a block.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub enum Direction {
     /// Northern cardinal direction.
@@ -68,7 +68,7 @@ impl Sub for Direction {
 
 /// Color of a block or item.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub enum Color {
     /// Default color.
@@ -131,7 +131,7 @@ impl Ord for LightmapQuality {
 
 /// Animation phase offset of a moving item.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug, TryFromPrimitive, IntoPrimitive)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub enum PhaseOffset {
     /// No phase offset.
