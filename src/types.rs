@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::fmt::{self, Debug, Display};
 use std::hash::{Hash, Hasher};
-use std::ops::{Add, Deref};
+use std::ops::{Add, Deref, Sub};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -19,7 +19,7 @@ pub struct Vec3<T> {
 
 impl<T> Vec3<T> {
     /// Create a new vector.
-    pub fn new(x: T, y: T, z: T) -> Self {
+    pub const fn new(x: T, y: T, z: T) -> Self {
         Self { x, y, z }
     }
 }
@@ -46,6 +46,21 @@ where
             x: self.x + rhs.x,
             y: self.y + rhs.y,
             z: self.z + rhs.z,
+        }
+    }
+}
+
+impl<T> Sub for Vec3<T>
+where
+    T: Sub<Output = T>,
+{
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
         }
     }
 }
