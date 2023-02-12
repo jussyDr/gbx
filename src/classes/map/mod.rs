@@ -58,6 +58,13 @@ pub enum Direction {
     West,
 }
 
+impl Direction {
+    /// Get the direction opposite to `self`.
+    pub fn opposite(self) -> Self {
+        Self::try_from((u8::from(self) + 2) % 4).unwrap()
+    }
+}
+
 impl Add for Direction {
     type Output = Self;
 
