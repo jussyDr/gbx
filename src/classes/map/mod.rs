@@ -15,7 +15,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
 use std::io::{Cursor, Read, Seek, Write};
-use std::ops::Sub;
+use std::ops::{Add, Sub};
 use uuid::Uuid;
 
 /// Day time of the default night mood.
@@ -56,6 +56,14 @@ pub enum Direction {
     South,
     /// Western cardinal direction.
     West,
+}
+
+impl Add for Direction {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        Self::try_from((u8::from(self) + u8::from(rhs)) % 4).unwrap()
+    }
 }
 
 impl Sub for Direction {
