@@ -159,8 +159,8 @@ impl<'a, T> WriterBuilder<'a, T> {
         w.u32(0)?;
 
         if self.compress_body {
-            let mut output = vec![0; lzo1x::worst_compress(body.len())];
-            let compressed_body = lzo1x::compress_to_slice(&body, &mut output);
+            let mut output = vec![0; lzo1x_1::worst_compress(body.len())];
+            let compressed_body = lzo1x_1::compress_to_slice(&body, &mut output);
 
             w.u32(body.len() as u32)?;
             w.u32(compressed_body.len() as u32)?;

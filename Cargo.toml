@@ -19,7 +19,7 @@ debug = true
 [dependencies]
 indexmap = "1.9.2"
 libz-sys = "1.1.8"
-lzo1x = { git = "https://github.com/jussyDr/lzo1x" }
+lzo1x-1 = "0.1.0"
 num_enum = "0.5.9"
 quick-xml = "0.27.1"
 serde = { version = "1.0.152", features = ["derive"], optional = true }

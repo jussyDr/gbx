@@ -188,7 +188,7 @@ impl<T> ReaderBuilder<T> {
                 let compressed_body = r.bytes(compressed_body_size as usize)?;
                 let mut body = vec![0; body_size as usize];
 
-                lzo1x::decompress_to_slice(&compressed_body, &mut body).unwrap();
+                lzo1x_1::decompress_to_slice(&compressed_body, &mut body).unwrap();
 
                 let mut r = Reader::with_id_and_node_state(
                     Cursor::new(body),
