@@ -435,6 +435,8 @@ pub struct Item {
     pub pos: Vec3<f32>,
     /// Optional waypoint property.
     pub waypoint_property: Option<WaypointProperty>,
+    /// Item model variant index.
+    pub variant_index: u8,
     /// Pivot position of the item.
     pub pivot_pos: Vec3<f32>,
     /// Color of the item.
@@ -487,12 +489,13 @@ impl Item {
         self.pos.y = r.f32()?;
         self.pos.z = r.f32()?;
         self.waypoint_property = r.optional_flat_node(0x2E009000, WaypointProperty::read)?;
-        let flags = r.u16()?;
+        self.variant_index = r.u8()?;
+        let flags = r.u8()?;
         self.pivot_pos.x = r.f32()?;
         self.pivot_pos.y = r.f32()?;
         self.pivot_pos.z = r.f32()?;
         let _scale = r.f32()?;
-        if flags & 0x0004 != 0 {
+        if flags & 0x04 != 0 {
             self.skin = Some(Skin {
                 skin: r.optional_file_ref()?,
                 effect: None,
