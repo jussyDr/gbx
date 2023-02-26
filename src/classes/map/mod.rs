@@ -489,8 +489,8 @@ impl Item {
         self.pos.y = r.f32()?;
         self.pos.z = r.f32()?;
         self.waypoint_property = r.optional_flat_node(0x2E009000, WaypointProperty::read)?;
-        self.variant_index = r.u8()?;
         let flags = r.u8()?;
+        self.variant_index = r.u8()?;
         self.pivot_pos.x = r.f32()?;
         self.pivot_pos.y = r.f32()?;
         self.pivot_pos.z = r.f32()?;
